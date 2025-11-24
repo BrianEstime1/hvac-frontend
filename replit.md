@@ -1,4 +1,4 @@
-# HVAC Management System
+# FerdAir Manager
 
 ## Overview
 A professional React + Tailwind CSS frontend for HVAC business management with customer tracking, appointments, and inventory monitoring.

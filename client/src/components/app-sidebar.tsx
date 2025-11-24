@@ -46,8 +46,8 @@ export function AppSidebar() {
             <Package className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground">HVAC Manager</h2>
-            <p className="text-xs text-muted-foreground">Management System</p>
+            <h2 className="text-lg font-bold text-sidebar-foreground">FerdAir</h2>
+            <p className="text-xs text-muted-foreground">Manager</p>
           </div>
         </div>
       </SidebarHeader>

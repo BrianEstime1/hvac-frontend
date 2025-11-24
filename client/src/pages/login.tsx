@@ -20,8 +20,8 @@ export default function Login() {
             </div>
           </div>
           <div className="text-center space-y-2">
-            <CardTitle className="text-2xl font-bold">HVAC Management System</CardTitle>
-            <CardDescription>Professional management for your HVAC business</CardDescription>
+            <CardTitle className="text-2xl font-bold">FerdAir Manager</CardTitle>
+            <CardDescription>Professional HVAC management for your business</CardDescription>
           </div>
         </CardHeader>
         <CardContent>

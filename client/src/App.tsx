@@ -38,7 +38,7 @@ function AppLayout() {
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b bg-background">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <h2 className="text-sm font-medium text-muted-foreground">HVAC Management</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">FerdAir Manager</h2>
           </header>
           <main className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto">
