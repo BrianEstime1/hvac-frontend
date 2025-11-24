@@ -43,7 +43,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <img 
-            src="/ferdair-logo.jpg" 
+            src="/ferdair-logo.png" 
             alt="FerdAir Logo" 
             className="h-12 w-auto object-contain"
           />
