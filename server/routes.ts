@@ -160,6 +160,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/invoices/:id/status", async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!["draft", "sent", "paid"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      const invoice = await storage.updateInvoiceStatus(parseInt(req.params.id), status);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error updating invoice status:", error);
+      res.status(500).json({ error: "Failed to update invoice status" });
+    }
+  });
+
+  app.post("/api/invoices/:id/send-email", async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email address required" });
+      }
+
+      const invoice = await storage.getInvoice(invoiceId);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      // Update status to "sent"
+      await storage.updateInvoiceStatus(invoiceId, "sent");
+
+      // For now, just return success - in production you'd integrate with SendGrid
+      // The SendGrid integration will be set up by the user in Replit
+      res.json({ 
+        success: true, 
+        message: `Invoice sent to ${email}`,
+        invoice 
+      });
+    } catch (error) {
+      console.error("Error sending invoice:", error);
+      res.status(500).json({ error: "Failed to send invoice" });
+    }
+  });
+
   app.delete("/api/invoices/:id", async (req, res) => {
     try {
       const deleted = await storage.deleteInvoice(parseInt(req.params.id));

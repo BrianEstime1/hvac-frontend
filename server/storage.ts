@@ -18,6 +18,7 @@ export interface IStorage {
   getInvoices(): Promise<Invoice[]>;
   getInvoice(id: number): Promise<Invoice | undefined>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoiceStatus(id: number, status: "draft" | "sent" | "paid"): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<boolean>;
   
   // Inventory
@@ -251,6 +252,15 @@ export class MemStorage implements IStorage {
     };
     this.invoices.set(id, newInvoice);
     return newInvoice;
+  }
+
+  async updateInvoiceStatus(id: number, status: "draft" | "sent" | "paid"): Promise<Invoice | undefined> {
+    const invoice = this.invoices.get(id);
+    if (!invoice) return undefined;
+    
+    const updated: Invoice = { ...invoice, status };
+    this.invoices.set(id, updated);
+    return updated;
   }
 
   async deleteInvoice(id: number): Promise<boolean> {

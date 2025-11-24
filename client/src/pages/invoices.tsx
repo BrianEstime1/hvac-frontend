@@ -37,16 +37,19 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download, Mail } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { generateInvoicePDF, createInvoiceHTML } from "@/lib/invoice-pdf";
 
 export default function Invoices() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
+  const [sendingEmailInvoice, setSendingEmailInvoice] = useState<Invoice | null>(null);
+  const [emailAddress, setEmailAddress] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
@@ -87,6 +90,17 @@ export default function Invoices() {
     },
   });
 
+  const sendEmailMutation = useMutation({
+    mutationFn: (data: { invoiceId: number; email: string }) =>
+      apiRequest("POST", `/api/invoices/${data.invoiceId}/send-email`, { email: data.email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setSendingEmailInvoice(null);
+      setEmailAddress("");
+      toast({ description: "Invoice sent successfully!" });
+    },
+  });
+
   const handleOpenAddDialog = () => {
     form.reset();
     setIsAddDialogOpen(true);
@@ -99,6 +113,44 @@ export default function Invoices() {
   const handleDelete = () => {
     if (deletingInvoice) {
       deleteMutation.mutate(deletingInvoice.id);
+    }
+  };
+
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    try {
+      const customer = customers?.find((c) => c.id === invoice.customerId);
+      
+      // Create a temporary container for PDF generation
+      const container = document.createElement("div");
+      container.id = `invoice-content-${invoice.id}`;
+      container.innerHTML = createInvoiceHTML(invoice, customer);
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      document.body.appendChild(container);
+
+      await generateInvoicePDF(
+        invoice,
+        customer,
+        `Invoice-${invoice.id}-${invoice.customerName}`
+      );
+
+      document.body.removeChild(container);
+      toast({ description: "Invoice downloaded successfully" });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        description: "Failed to download invoice",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSendEmail = () => {
+    if (sendingEmailInvoice && emailAddress) {
+      sendEmailMutation.mutate({
+        invoiceId: sendingEmailInvoice.id,
+        email: emailAddress,
+      });
     }
   };
 
@@ -187,14 +239,37 @@ export default function Invoices() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingInvoice(invoice)}
-                          data-testid={`button-delete-${invoice.id}`}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDownloadPDF(invoice)}
+                            data-testid={`button-download-${invoice.id}`}
+                            title="Download as PDF"
+                          >
+                            <Download className="w-4 h-4 text-blue-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSendingEmailInvoice(invoice);
+                              setEmailAddress(customers?.find((c) => c.id === invoice.customerId)?.email || "");
+                            }}
+                            data-testid={`button-email-${invoice.id}`}
+                            title="Send via email"
+                          >
+                            <Mail className="w-4 h-4 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingInvoice(invoice)}
+                            data-testid={`button-delete-${invoice.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -321,6 +396,51 @@ export default function Invoices() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Email Dialog */}
+      <Dialog open={!!sendingEmailInvoice} onOpenChange={(open) => {
+        if (!open) {
+          setSendingEmailInvoice(null);
+          setEmailAddress("");
+        }
+      }}>
+        <DialogContent data-testid="dialog-send-email">
+          <DialogHeader>
+            <DialogTitle>Send Invoice via Email</DialogTitle>
+            <DialogDescription>
+              Enter the email address to send this invoice to
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="email"
+              placeholder="customer@example.com"
+              value={emailAddress}
+              onChange={(e) => setEmailAddress(e.target.value)}
+              data-testid="input-email-address"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSendingEmailInvoice(null);
+                setEmailAddress("");
+              }}
+              data-testid="button-cancel-email"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={!emailAddress || sendEmailMutation.isPending}
+              data-testid="button-confirm-email"
+            >
+              {sendEmailMutation.isPending ? "Sending..." : "Send Invoice"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
