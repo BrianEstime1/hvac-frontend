@@ -1,4 +1,4 @@
-import type { Customer, InsertCustomer, Appointment, InsertAppointment, InventoryItem, DashboardStats } from "@shared/schema";
+import type { Customer, InsertCustomer, Appointment, InsertAppointment, InventoryItem, Invoice, InsertInvoice, DashboardStats } from "@shared/schema";
 
 export interface IStorage {
   // Customers
@@ -14,6 +14,12 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   deleteAppointment(id: number): Promise<boolean>;
   
+  // Invoices
+  getInvoices(): Promise<Invoice[]>;
+  getInvoice(id: number): Promise<Invoice | undefined>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  deleteInvoice(id: number): Promise<boolean>;
+  
   // Inventory
   getInventoryItems(): Promise<InventoryItem[]>;
   
@@ -24,16 +30,20 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private customers: Map<number, Customer>;
   private appointments: Map<number, Appointment>;
+  private invoices: Map<number, Invoice>;
   private inventoryItems: Map<number, InventoryItem>;
   private nextCustomerId: number;
   private nextAppointmentId: number;
+  private nextInvoiceId: number;
 
   constructor() {
     this.customers = new Map();
     this.appointments = new Map();
+    this.invoices = new Map();
     this.inventoryItems = new Map();
     this.nextCustomerId = 1;
     this.nextAppointmentId = 1;
+    this.nextInvoiceId = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -131,6 +141,39 @@ export class MemStorage implements IStorage {
     sampleInventory.forEach((item) => {
       this.inventoryItems.set(item.id, item);
     });
+
+    // Sample invoices
+    const sampleInvoices: Omit<Invoice, "id">[] = [
+      {
+        customerId: 1,
+        customerName: "John Smith",
+        date: new Date().toISOString().split('T')[0],
+        amount: 450.00,
+        description: "AC maintenance and filter replacement",
+        status: "paid",
+      },
+      {
+        customerId: 2,
+        customerName: "Sarah Johnson",
+        date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        amount: 275.50,
+        description: "Furnace repair",
+        status: "sent",
+      },
+      {
+        customerId: 3,
+        customerName: "Mike Williams",
+        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        amount: 325.00,
+        description: "Duct cleaning and inspection",
+        status: "draft",
+      },
+    ];
+
+    sampleInvoices.forEach((invoice) => {
+      const id = this.nextInvoiceId++;
+      this.invoices.set(id, { id, ...invoice });
+    });
   }
 
   // Customers
@@ -186,6 +229,32 @@ export class MemStorage implements IStorage {
 
   async deleteAppointment(id: number): Promise<boolean> {
     return this.appointments.delete(id);
+  }
+
+  // Invoices
+  async getInvoices(): Promise<Invoice[]> {
+    return Array.from(this.invoices.values());
+  }
+
+  async getInvoice(id: number): Promise<Invoice | undefined> {
+    return this.invoices.get(id);
+  }
+
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    const id = this.nextInvoiceId++;
+    const customer = this.customers.get(invoice.customerId);
+    const newInvoice: Invoice = {
+      id,
+      ...invoice,
+      customerName: customer?.name,
+      status: "draft",
+    };
+    this.invoices.set(id, newInvoice);
+    return newInvoice;
+  }
+
+  async deleteInvoice(id: number): Promise<boolean> {
+    return this.invoices.delete(id);
   }
 
   // Inventory

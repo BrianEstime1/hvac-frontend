@@ -44,6 +44,22 @@ export const insertInventoryItemSchema = inventoryItemSchema.omit({ id: true });
 export type InventoryItem = z.infer<typeof inventoryItemSchema>;
 export type InsertInventoryItem = z.infer<typeof insertInventoryItemSchema>;
 
+// Invoice Schema
+export const invoiceSchema = z.object({
+  id: z.number(),
+  customerId: z.number(),
+  customerName: z.string().optional(),
+  date: z.string(),
+  amount: z.number(),
+  description: z.string().optional(),
+  status: z.enum(["draft", "sent", "paid"]).optional(),
+});
+
+export const insertInvoiceSchema = invoiceSchema.omit({ id: true, customerName: true });
+
+export type Invoice = z.infer<typeof invoiceSchema>;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+
 // Dashboard Stats
 export interface DashboardStats {
   totalCustomers: number;
