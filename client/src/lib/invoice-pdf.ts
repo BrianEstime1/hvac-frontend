@@ -93,9 +93,20 @@ export function createInvoiceHTML(
         </div>
       </div>
 
-      <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #666; font-size: 11px;">
+      <div style="margin-top: 40px; padding: 20px; background: #f3f4f6; border-radius: 4px;">
+        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 13px; font-weight: bold;">Payment Methods</h3>
+        <div style="font-size: 11px; color: #666; line-height: 1.6;">
+          <p style="margin: 5px 0;"><strong>Online Payment:</strong> Visit www.ferdair.com/pay</p>
+          <p style="margin: 5px 0;"><strong>Bank Transfer:</strong> Contact us for banking details</p>
+          <p style="margin: 5px 0;"><strong>Check:</strong> Make checks payable to FerdAir</p>
+          <p style="margin: 5px 0;"><strong>Credit Card:</strong> Call 1-800-FERDAIR or visit our website</p>
+          <p style="margin: 10px 0 0 0;">Please reference Invoice #${invoice.id} with your payment.</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #666; font-size: 11px;">
         <p style="margin: 5px 0;">Thank you for your business!</p>
-        <p style="margin: 5px 0;">For questions or payments, please contact FerdAir Manager.</p>
+        <p style="margin: 5px 0;">For questions, please contact us at support@ferdair.com or call 1-800-FERDAIR.</p>
       </div>
     </div>
   `;
