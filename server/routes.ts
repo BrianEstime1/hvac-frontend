@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertAppointmentSchema, insertInvoiceSchema } from "@shared/schema";
+import { insertCustomerSchema, insertAppointmentSchema, insertInvoiceSchema, insertInventoryItemSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
@@ -228,6 +228,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching inventory:", error);
       res.status(500).json({ error: "Failed to fetch inventory" });
+    }
+  });
+
+  app.post("/api/inventory", async (req, res) => {
+    try {
+      const validatedData = insertInventoryItemSchema.parse(req.body);
+      const item = await storage.createInventoryItem(validatedData);
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating inventory item:", error);
+      res.status(400).json({ error: "Invalid inventory data" });
+    }
+  });
+
+  app.put("/api/inventory/:id", async (req, res) => {
+    try {
+      const validatedData = insertInventoryItemSchema.parse(req.body);
+      const item = await storage.updateInventoryItem(parseInt(req.params.id), validatedData);
+      if (!item) {
+        return res.status(404).json({ error: "Inventory item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      console.error("Error updating inventory item:", error);
+      res.status(400).json({ error: "Invalid inventory data" });
+    }
+  });
+
+  app.delete("/api/inventory/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteInventoryItem(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ error: "Inventory item not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting inventory item:", error);
+      res.status(500).json({ error: "Failed to delete inventory item" });
     }
   });
 

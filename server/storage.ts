@@ -23,6 +23,10 @@ export interface IStorage {
   
   // Inventory
   getInventoryItems(): Promise<InventoryItem[]>;
+  getInventoryItem(id: number): Promise<InventoryItem | undefined>;
+  createInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem>;
+  updateInventoryItem(id: number, item: Omit<InventoryItem, 'id'>): Promise<InventoryItem | undefined>;
+  deleteInventoryItem(id: number): Promise<boolean>;
   
   // Dashboard
   getDashboardStats(): Promise<DashboardStats>;
@@ -36,6 +40,7 @@ export class MemStorage implements IStorage {
   private nextCustomerId: number;
   private nextAppointmentId: number;
   private nextInvoiceId: number;
+  private nextInventoryId: number;
 
   constructor() {
     this.customers = new Map();
@@ -45,6 +50,7 @@ export class MemStorage implements IStorage {
     this.nextCustomerId = 1;
     this.nextAppointmentId = 1;
     this.nextInvoiceId = 1;
+    this.nextInventoryId = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -270,6 +276,28 @@ export class MemStorage implements IStorage {
   // Inventory
   async getInventoryItems(): Promise<InventoryItem[]> {
     return Array.from(this.inventoryItems.values());
+  }
+
+  async getInventoryItem(id: number): Promise<InventoryItem | undefined> {
+    return this.inventoryItems.get(id);
+  }
+
+  async createInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem> {
+    const id = this.nextInventoryId++;
+    const newItem: InventoryItem = { id, ...item };
+    this.inventoryItems.set(id, newItem);
+    return newItem;
+  }
+
+  async updateInventoryItem(id: number, item: Omit<InventoryItem, 'id'>): Promise<InventoryItem | undefined> {
+    if (!this.inventoryItems.has(id)) return undefined;
+    const updated: InventoryItem = { id, ...item };
+    this.inventoryItems.set(id, updated);
+    return updated;
+  }
+
+  async deleteInventoryItem(id: number): Promise<boolean> {
+    return this.inventoryItems.delete(id);
   }
 
   // Dashboard
