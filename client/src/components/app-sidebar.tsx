@@ -40,15 +40,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-6">
+      <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary">
-            <Package className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-sidebar-foreground">FerdAir</h2>
-            <p className="text-xs text-muted-foreground">Manager</p>
-          </div>
+          <img 
+            src="/ferdair-logo.jpg" 
+            alt="FerdAir Logo" 
+            className="h-12 w-auto object-contain"
+          />
         </div>
       </SidebarHeader>
       <SidebarContent>

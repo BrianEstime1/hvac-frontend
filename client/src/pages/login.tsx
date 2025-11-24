@@ -15,12 +15,13 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-6">
           <div className="flex justify-center">
-            <div className="flex items-center justify-center w-16 h-16 rounded-lg bg-primary">
-              <Package className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img 
+              src="/ferdair-logo.jpg" 
+              alt="FerdAir Logo" 
+              className="h-20 w-auto object-contain"
+            />
           </div>
           <div className="text-center space-y-2">
-            <CardTitle className="text-2xl font-bold">FerdAir Manager</CardTitle>
             <CardDescription>Professional HVAC management for your business</CardDescription>
           </div>
         </CardHeader>
