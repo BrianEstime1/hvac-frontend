@@ -1,10 +1,9 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 
-// Configure axios instance to use local backend proxy
-// The backend will forward requests to the external API
+// Configure axios instance to use deployed Render backend
 export const api = axios.create({
-  baseURL: "", // Use relative URLs - backend will proxy to external API
+  baseURL: "https://hvac-management-api.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
