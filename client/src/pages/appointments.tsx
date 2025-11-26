@@ -68,13 +68,28 @@ export default function Appointments() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertAppointment) => apiRequest("POST", "/api/appointments", data),
+    mutationFn: (data: InsertAppointment) => {
+      // Transform the data to match backend expectations
+      const backendData = {
+        customer_id: data.customerId,
+        appointment_date: data.date,
+        appointment_time: data.time,
+        notes: data.description || "",
+      };
+      return apiRequest("POST", "/api/appointments", backendData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setIsAddDialogOpen(false);
       form.reset();
       toast({ description: "Appointment created successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to create appointment",
+      });
     },
   });
 
