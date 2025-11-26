@@ -4,9 +4,9 @@ import { z } from "zod";
 export const customerSchema = z.object({
   id: z.number(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string().email().optional(),
   phone: z.string(),
-  address: z.string(),
+  address: z.string().optional(),
 });
 
 export const insertCustomerSchema = customerSchema.omit({ id: true });
@@ -21,7 +21,8 @@ export const appointmentSchema = z.object({
   customerName: z.string().optional(),
   date: z.string(),
   time: z.string(),
-  description: z.string(),
+  serviceType: z.string().optional(),
+  description: z.string().optional(),
   status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
 });
 
@@ -37,6 +38,7 @@ export const inventoryItemSchema = z.object({
   quantity: z.number(),
   category: z.string().optional(),
   price: z.number().optional(),
+  unit: z.string().optional(),
 });
 
 export const insertInventoryItemSchema = inventoryItemSchema.omit({ id: true });
@@ -49,7 +51,10 @@ export const invoiceSchema = z.object({
   id: z.number(),
   customerId: z.number(),
   customerName: z.string().optional(),
+  invoiceNumber: z.string().optional(),
   date: z.string(),
+  technician: z.string().optional(),
+  workPerformed: z.string().optional(),
   amount: z.number(),
   description: z.string().optional(),
   status: z.enum(["draft", "sent", "paid"]).optional(),
