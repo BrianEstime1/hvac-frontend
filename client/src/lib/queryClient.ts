@@ -1,5 +1,11 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
+import { 
+  transformAppointmentFromAPI, 
+  transformInvoiceFromAPI, 
+  transformCustomerFromAPI, 
+  transformInventoryFromAPI 
+} from "./apiTransformers";
 
 // Configure axios instance to use deployed Render backend
 export const api = axios.create({
@@ -35,6 +41,7 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
@@ -42,7 +49,43 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     try {
       const response = await api.get(queryKey.join("/") as string);
-      return response.data;
+      const path = queryKey.join("/");
+      
+      // Transform data based on endpoint
+      let transformedData = response.data;
+      
+      if (path.includes("/api/appointments")) {
+        // Transform appointments
+        transformedData = Array.isArray(response.data) 
+          ? response.data.map(transformAppointmentFromAPI)
+          : transformAppointmentFromAPI(response.data);
+      } else if (path.includes("/api/invoices")) {
+        // Transform invoices
+        transformedData = Array.isArray(response.data)
+          ? response.data.map(transformInvoiceFromAPI)
+          : transformInvoiceFromAPI(response.data);
+      } else if (path.includes("/api/customers")) {
+        // Transform customers
+        transformedData = Array.isArray(response.data)
+          ? response.data.map(transformCustomerFromAPI)
+          : transformCustomerFromAPI(response.data);
+      } else if (path.includes("/api/inventory")) {
+        // Transform inventory
+        transformedData = Array.isArray(response.data)
+          ? response.data.map(transformInventoryFromAPI)
+          : transformInventoryFromAPI(response.data);
+      } else if (path.includes("/api/dashboard/stats")) {
+        // Transform dashboard stats
+        transformedData = {
+          totalCustomers: response.data.total_customers || 0,
+          upcomingAppointments: response.data.upcoming_appointments || 0,
+          lowStockItems: Array.isArray(response.data.low_stock_items)
+            ? response.data.low_stock_items.map(transformInventoryFromAPI)
+            : [],
+        };
+      }
+      
+      return transformedData;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
