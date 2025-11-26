@@ -63,6 +63,7 @@ export default function Appointments() {
       customerId: 0,
       date: "",
       time: "",
+      serviceType: "",
       description: "",
     },
   });
@@ -74,6 +75,7 @@ export default function Appointments() {
         customer_id: data.customerId,
         appointment_date: data.date,
         appointment_time: data.time,
+        service_type: data.serviceType || data.description || "Service Call",
         notes: data.description || "",
       };
       return apiRequest("POST", "/api/appointments", backendData);
@@ -277,6 +279,23 @@ export default function Appointments() {
                     <FormLabel>Time</FormLabel>
                     <FormControl>
                       <Input {...field} type="time" data-testid="input-time" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="serviceType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Type</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="AC Repair, Maintenance, Installation..."
+                        data-testid="input-service-type" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
