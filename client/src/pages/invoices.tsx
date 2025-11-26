@@ -66,6 +66,9 @@ export default function Invoices() {
     defaultValues: {
       customerId: 0,
       date: new Date().toISOString().split('T')[0],
+      invoiceNumber: "",
+      technician: "",
+      workPerformed: "",
       amount: 0,
       description: "",
     },
@@ -73,17 +76,18 @@ export default function Invoices() {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertInvoice) => {
-      // Generate invoice number based on timestamp
-      const invoiceNumber = `INV-${Date.now()}`;
+      // Auto-generate invoice number if not provided
+      const invoiceNumber = data.invoiceNumber || `INV-${Date.now()}`;
       
       // Transform data to match backend expectations
       const backendData = {
         customer_id: data.customerId,
         invoice_number: invoiceNumber,
         date: data.date,
-        technician: "Admin", // Default technician
-        work_performed: data.description || "Service performed",
+        technician: data.technician || "Admin",
+        work_performed: data.workPerformed || "Service performed",
         labor_cost: data.amount,
+        description: data.description || "",
       };
       
       return apiRequest("POST", "/api/invoices", backendData);
@@ -358,12 +362,63 @@ export default function Invoices() {
               />
               <FormField
                 control={form.control}
+                name="invoiceNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Invoice Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Auto-generated if left blank"
+                        data-testid="input-invoice-number" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="date"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} data-testid="input-invoice-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="technician"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Technician</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Technician name"
+                        data-testid="input-technician" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="workPerformed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Work Performed</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="AC repair, maintenance, installation..."
+                        {...field}
+                        data-testid="input-work-performed"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -394,10 +449,10 @@ export default function Invoices() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Additional Notes (Optional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Invoice description..."
+                        placeholder="Any additional notes or comments..."
                         {...field}
                         data-testid="input-invoice-description"
                       />
