@@ -72,12 +72,33 @@ export default function Invoices() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertInvoice) => apiRequest("POST", "/api/invoices", data),
+    mutationFn: (data: InsertInvoice) => {
+      // Generate invoice number based on timestamp
+      const invoiceNumber = `INV-${Date.now()}`;
+      
+      // Transform data to match backend expectations
+      const backendData = {
+        customer_id: data.customerId,
+        invoice_number: invoiceNumber,
+        date: data.date,
+        technician: "Admin", // Default technician
+        work_performed: data.description || "Service performed",
+        labor_cost: data.amount,
+      };
+      
+      return apiRequest("POST", "/api/invoices", backendData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       setIsAddDialogOpen(false);
       form.reset();
       toast({ description: "Invoice created successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to create invoice",
+      });
     },
   });
 
