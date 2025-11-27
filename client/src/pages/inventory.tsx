@@ -20,6 +20,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Form,
   FormControl,
   FormField,
@@ -35,6 +42,16 @@ import { insertInventoryItemSchema, type InventoryItem, type InsertInventoryItem
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// Available categories - all lowercase to match backend
+const CATEGORIES = [
+  { value: "parts", label: "Parts" },
+  { value: "tools", label: "Tools" },
+  { value: "refrigerant", label: "Refrigerant" },
+  { value: "supplies", label: "Supplies" },
+  { value: "equipment", label: "Equipment" },
+  { value: "other", label: "Other" },
+];
 
 export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,23 +75,54 @@ export default function Inventory() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertInventoryItem) => apiRequest("POST", "/api/inventory", data),
+    mutationFn: (data: InsertInventoryItem) => {
+      // 🔧 CHANGE #1: Trim and normalize data before sending
+      const payload = {
+        name: data.name.trim(),
+        category: data.category.trim().toLowerCase(),
+        quantity: Number(data.quantity),
+        price: Number(data.price || 0),
+      };
+      return apiRequest("POST", "/api/inventory", payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setIsAddDialogOpen(false);
       form.reset();
       toast({ description: "Item added successfully" });
     },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to add item",
+      });
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: number; item: InsertInventoryItem }) =>
-      apiRequest("PUT", `/api/inventory/${data.id}`, data.item),
+    mutationFn: (data: { id: number; item: InsertInventoryItem }) => {
+      // 🔧 CHANGE #1: Trim and normalize data before sending
+      const payload = {
+        name: data.item.name.trim(),
+        category: data.item.category.trim().toLowerCase(),
+        quantity: Number(data.item.quantity),
+        price: Number(data.item.price || 0),
+      };
+      return apiRequest("PUT", `/api/inventory/${data.id}`, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setEditingItem(null);
       form.reset();
       toast({ description: "Item updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to update item",
+      });
     },
   });
 
@@ -82,6 +130,7 @@ export default function Inventory() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/inventory/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setDeletingItem(null);
       toast({ description: "Item deleted successfully" });
     },
@@ -186,7 +235,7 @@ export default function Inventory() {
                       className={item.quantity < 10 ? "bg-destructive/5" : ""}
                     >
                       <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.category || "—"}</TableCell>
+                      <TableCell className="capitalize">{item.category || "—"}</TableCell>
                       <TableCell>
                         <span
                           className={item.quantity < 10 ? "font-bold text-destructive" : ""}
@@ -271,15 +320,27 @@ export default function Inventory() {
                   </FormItem>
                 )}
               />
+              {/* 🔧 CHANGE #2: Replace text input with dropdown */}
               <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Filters, Refrigerants, Parts" {...field} data-testid="input-category" />
-                    </FormControl>
+                    <FormLabel>Category *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-category">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
