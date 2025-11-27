@@ -3,6 +3,7 @@
 A modern, responsive web application for HVAC businesses to manage customers, appointments, invoices, and inventory. Built for **FERDAIR LLC** with React, TypeScript, and TailwindCSS.
 
 
+<img width="1470" height="956" alt="Screenshot 2025-11-27 at 6 07 43 AM" src="https://github.com/user-attachments/assets/fa248295-b54e-466c-a6d6-1dbc82cd946a" />
 
 ## 🚀 Live Demo
 
