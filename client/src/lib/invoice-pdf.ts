@@ -2,6 +2,9 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Invoice, Customer } from "@shared/schema";
 
+const formatCurrency = (value: number) =>
+  Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
 export async function generateInvoicePDF(
   invoice: Invoice,
   customer: Customer | undefined,
@@ -34,6 +37,8 @@ export function createInvoiceHTML(
   invoice: Invoice,
   customer: Customer | undefined
 ) {
+  const formattedLaborCost = formatCurrency(invoice.labor_cost);
+
   return `
     <div style="padding: 40px; background: white; color: #000;">
       <div style="margin-bottom: 40px;">
@@ -63,34 +68,20 @@ export function createInvoiceHTML(
           <p style="margin: 0; color: #666; font-size: 12px;">Date: ${invoice.date}</p>
         </div>
         <div>
-          <p style="margin: 0; color: #666; font-size: 12px; font-weight: bold;">Status: ${invoice.status?.toUpperCase() || "DRAFT"}</p>
+          <p style="margin: 0; color: #666; font-size: 12px; font-weight: bold;">Status: ${
+            invoice.status?.toUpperCase() || "DRAFT"
+          }</p>
         </div>
       </div>
 
-      <div style="margin-bottom: 40px;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="border-bottom: 2px solid #2563eb;">
-              <th style="padding: 10px 0; text-align: left; color: #333;">Description</th>
-              <th style="padding: 10px 0; text-align: right; color: #333;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom: 1px solid #e5e7eb;">
-              <td style="padding: 15px 0; color: #333;">${invoice.description || "Invoice"}</td>
-              <td style="padding: 15px 0; text-align: right; color: #333;">$${invoice.amount.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div style="margin-bottom: 30px;">
+        <p style="margin: 0 0 8px 0; color: #333; font-weight: bold;">Work Performed</p>
+        <p style="margin: 0; color: #666;">${invoice.workPerformed || "Service performed"}</p>
+        ${invoice.description ? `<p style=\"margin: 10px 0 0 0; color: #666;\">${invoice.description}</p>` : ""}
       </div>
 
-      <div style="text-align: right; margin-bottom: 40px;">
-        <div style="border-top: 2px solid #2563eb; padding-top: 10px; width: 200px; margin-left: auto;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: #333; font-weight: bold;">Total:</span>
-            <span style="color: #2563eb; font-weight: bold; font-size: 18px;">$${invoice.amount.toFixed(2)}</span>
-          </div>
-        </div>
+      <div style="padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center; margin-bottom: 30px;">
+        <p style="margin: 0; color: #333; font-size: 18px; font-weight: bold;">Amount Due: $${formattedLaborCost}</p>
       </div>
 
       <div style="margin-top: 40px; padding: 20px; background: #f3f4f6; border-radius: 4px;">
