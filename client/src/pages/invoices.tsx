@@ -51,6 +51,9 @@ export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
+  const formatCurrency = (value: number) =>
+    Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
   const { data: invoices, isLoading: invoicesLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
   });
@@ -67,7 +70,7 @@ export default function Invoices() {
       invoiceNumber: "",
       technician: "",
       workPerformed: "",
-      amount: 0,
+      labor_cost: 0,
       description: "",
     },
   });
@@ -84,7 +87,7 @@ export default function Invoices() {
         date: data.date,
         technician: data.technician || "Admin",
         work_performed: data.workPerformed || "Service performed",
-        labor_cost: data.amount,
+        labor_cost: data.labor_cost,
         description: data.description || "",
       };
       
@@ -208,13 +211,13 @@ export default function Invoices() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Labor Cost</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -226,7 +229,7 @@ export default function Invoices() {
                       </TableCell>
                       <TableCell data-testid={`text-date-${invoice.id}`}>{invoice.date}</TableCell>
                       <TableCell data-testid={`text-amount-${invoice.id}`}>
-                        ${invoice.amount.toFixed(2)}
+                        ${formatCurrency(invoice.labor_cost)}
                       </TableCell>
                       <TableCell className="max-w-xs truncate" data-testid={`text-description-${invoice.id}`}>
                         {invoice.description}
@@ -392,10 +395,10 @@ export default function Invoices() {
               />
               <FormField
                 control={form.control}
-                name="amount"
+                name="labor_cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>Labor Cost</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -403,7 +406,7 @@ export default function Invoices() {
                         placeholder="0.00"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                        data-testid="input-invoice-amount"
+                        data-testid="input-invoice-labor-cost"
                       />
                     </FormControl>
                     <FormMessage />

@@ -21,7 +21,11 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     date: apiInvoice.date,
     technician: apiInvoice.technician,
     workPerformed: apiInvoice.work_performed,
-    amount: apiInvoice.total || apiInvoice.labor_cost || 0,
+    labor_cost: apiInvoice.labor_cost ?? apiInvoice.total ?? 0,
+    materials_cost: apiInvoice.materials_cost,
+    subtotal: apiInvoice.subtotal,
+    tax: apiInvoice.tax,
+    total: apiInvoice.total,
     description: apiInvoice.description,
     status: apiInvoice.status,
   };
