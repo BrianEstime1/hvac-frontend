@@ -97,7 +97,7 @@ export function createInvoiceHTML(
         <h3 style="margin: 0 0 10px 0; color: #333; font-size: 13px; font-weight: bold;">Payment Methods</h3>
         <div style="font-size: 11px; color: #666; line-height: 1.6;">
           <p style="margin: 5px 0;"><strong>Cash:</strong> Payment accepted at time of service</p>
-          <p style="margin: 5px 0;"><strong>Zelle:</strong> Send payment to (561) 577-5327</p>
+          <p style="margin: 5px 0;"><strong>Zelle:</strong> Send payment to ferde.estime@yahoo.com</p>
           <p style="margin: 5px 0;"><strong>Check:</strong> Make checks payable to FERDAIR LLC</p>
           <p style="margin: 10px 0 0 0;">Please reference Invoice #${invoice.id} with your payment.</p>
         </div>
