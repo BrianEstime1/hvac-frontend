@@ -18,10 +18,11 @@ export const api = axios.create({
   },
 });
 
+// Universal API request wrapper
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown | undefined
 ): Promise<any> {
   try {
     const response = await api.request({
@@ -35,8 +36,8 @@ export async function apiRequest(
       const axiosError = error as AxiosError;
       throw new Error(
         axiosError.response?.data as string ||
-        axiosError.message ||
-        "An error occurred"
+          axiosError.message ||
+          "An error occurred"
       );
     }
     throw error;
@@ -51,59 +52,71 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
+      // FIXED: Only use the first element of queryKey
       const path = queryKey[0] as string;
       const response = await api.get(path);
+      const raw = response.data;
 
-      
-      // Transform data based on endpoint
-      let transformedData = response.data;
-      
+      let transformedData: any = raw;
+
+      // --- Helper to force any backend shape into a clean array ---
+      const normalizeList = (value: any) => {
+        if (Array.isArray(value)) return value;
+        if (Array.isArray(value?.data)) return value.data;
+        if (Array.isArray(value?.items)) return value.items;
+        if (Array.isArray(value?.customers)) return value.customers;
+        if (Array.isArray(value?.invoices)) return value.invoices;
+        if (Array.isArray(value?.quotes)) return value.quotes;
+        return value ? [value] : [];
+      };
+
+      // --- Transform endpoints safely ---
       if (path.includes("/api/appointments")) {
-        // Transform appointments
-        transformedData = Array.isArray(response.data)
-          ? response.data.map(transformAppointmentFromAPI)
-          : transformAppointmentFromAPI(response.data);
+        const list = normalizeList(raw);
+        transformedData = list.map(transformAppointmentFromAPI);
+
       } else if (path.includes("/api/invoices")) {
-        // Transform invoices
-        transformedData = Array.isArray(response.data)
-          ? response.data.map(transformInvoiceFromAPI)
-          : transformInvoiceFromAPI(response.data);
+        const list = normalizeList(raw);
+        transformedData = list.map(transformInvoiceFromAPI);
+
       } else if (path.includes("/api/customers")) {
-        // Transform customers
-        transformedData = Array.isArray(response.data)
-          ? response.data.map(transformCustomerFromAPI)
-          : transformCustomerFromAPI(response.data);
+        const list = normalizeList(raw);
+        transformedData = list.map(transformCustomerFromAPI);
+
       } else if (path.includes("/api/inventory")) {
-        // Transform inventory
-        transformedData = Array.isArray(response.data)
-          ? response.data.map(transformInventoryFromAPI)
-          : transformInventoryFromAPI(response.data);
+        const list = normalizeList(raw);
+        transformedData = list.map(transformInventoryFromAPI);
+
       } else if (path.includes("/api/quotes")) {
-        transformedData = Array.isArray(response.data)
-          ? response.data.map(transformQuoteFromAPI)
-          : transformQuoteFromAPI(response.data);
+        const list = normalizeList(raw);
+        transformedData = list.map(transformQuoteFromAPI);
+
       } else if (path.includes("/api/dashboard/stats")) {
-        // Transform dashboard stats
+        // Dashboard stats are custom — leave them intact
         transformedData = {
-          totalCustomers: response.data.total_customers || 0,
-          upcomingAppointments: response.data.upcoming_appointments || 0,
-          lowStockItems: Array.isArray(response.data.low_stock_items)
-            ? response.data.low_stock_items.map(transformInventoryFromAPI)
+          totalCustomers: raw.total_customers || 0,
+          upcomingAppointments: raw.upcoming_appointments || 0,
+          lowStockItems: Array.isArray(raw.low_stock_items)
+            ? raw.low_stock_items.map(transformInventoryFromAPI)
             : [],
         };
       }
-      
+
       return transformedData;
+
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
-        if (unauthorizedBehavior === "returnNull" && axiosError.response?.status === 401) {
+        if (
+          unauthorizedBehavior === "returnNull" &&
+          axiosError.response?.status === 401
+        ) {
           return null;
         }
         throw new Error(
           axiosError.response?.data as string ||
-          axiosError.message ||
-          "An error occurred"
+            axiosError.message ||
+            "An error occurred"
         );
       }
       throw error;
