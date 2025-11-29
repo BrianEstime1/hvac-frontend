@@ -109,14 +109,12 @@ export function createInvoiceHTML(
       </div>
 
       <!-- Total Section -->
-      <div style="padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center; margin-bottom: 30px;">
-        <p style="margin: 0; color: #333; font-size: 18px; font-weight: bold;">
-          Amount Due: $${formattedTotal}
-        </p>
-        <p style="margin: 5px 0; color: #666; font-size: 12px;">
-          Subtotal: $${formattedSubtotal} | Tax: $${formattedTax}
-        </p>
-      </div>
+    <div style="padding: 20px; background: #f3f4f6; border-radius: 6px; text-align: center; margin-bottom: 30px;">
+  <p style="margin: 0; color: #333; font-size: 20px; font-weight: bold;">
+    Amount Due: $${formattedSubtotal}
+  </p>
+</div>
+
 
       <!-- Payment Instructions -->
       <div style="margin-top: 40px; padding: 20px; background: #f3f4f6; border-radius: 4px;">
