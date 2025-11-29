@@ -1,4 +1,15 @@
-import type { Customer, InsertCustomer, Appointment, InsertAppointment, InventoryItem, Invoice, InsertInvoice, DashboardStats } from "@shared/schema";
+import type {
+  Customer,
+  InsertCustomer,
+  Appointment,
+  InsertAppointment,
+  InventoryItem,
+  Invoice,
+  InsertInvoice,
+  DashboardStats,
+  Quote,
+  InsertQuote,
+} from "@shared/schema";
 
 export interface IStorage {
   // Customers
@@ -27,9 +38,16 @@ export interface IStorage {
   createInventoryItem(item: Omit<InventoryItem, 'id'>): Promise<InventoryItem>;
   updateInventoryItem(id: number, item: Omit<InventoryItem, 'id'>): Promise<InventoryItem | undefined>;
   deleteInventoryItem(id: number): Promise<boolean>;
-  
+
   // Dashboard
   getDashboardStats(): Promise<DashboardStats>;
+
+  // Quotes
+  getQuotes(): Promise<Quote[]>;
+  getQuote(id: number): Promise<Quote | undefined>;
+  createQuote(quote: InsertQuote): Promise<Quote>;
+  deleteQuote(id: number): Promise<boolean>;
+  convertQuoteToInvoice(id: number): Promise<Invoice | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -37,20 +55,24 @@ export class MemStorage implements IStorage {
   private appointments: Map<number, Appointment>;
   private invoices: Map<number, Invoice>;
   private inventoryItems: Map<number, InventoryItem>;
+  private quotes: Map<number, Quote>;
   private nextCustomerId: number;
   private nextAppointmentId: number;
   private nextInvoiceId: number;
   private nextInventoryId: number;
+  private nextQuoteId: number;
 
   constructor() {
     this.customers = new Map();
     this.appointments = new Map();
     this.invoices = new Map();
     this.inventoryItems = new Map();
+    this.quotes = new Map();
     this.nextCustomerId = 1;
     this.nextAppointmentId = 1;
     this.nextInvoiceId = 1;
     this.nextInventoryId = 1;
+    this.nextQuoteId = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -154,25 +176,37 @@ export class MemStorage implements IStorage {
       {
         customerId: 1,
         customerName: "John Smith",
+        invoiceNumber: "INV-0001",
         date: new Date().toISOString().split('T')[0],
-        amount: 450.00,
-        description: "AC maintenance and filter replacement",
+        labor_cost: 450.0,
+        subtotal: 450.0,
+        total: 450.0,
+        workPerformed: "AC maintenance and filter replacement",
+        description: "Annual tune-up and filter change",
         status: "paid",
       },
       {
         customerId: 2,
         customerName: "Sarah Johnson",
+        invoiceNumber: "INV-0002",
         date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: 275.50,
-        description: "Furnace repair",
+        labor_cost: 275.5,
+        subtotal: 275.5,
+        total: 275.5,
+        workPerformed: "Furnace repair",
+        description: "Replaced igniter and tested system",
         status: "sent",
       },
       {
         customerId: 3,
         customerName: "Mike Williams",
+        invoiceNumber: "INV-0003",
         date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: 325.00,
-        description: "Duct cleaning and inspection",
+        labor_cost: 325.0,
+        subtotal: 325.0,
+        total: 325.0,
+        workPerformed: "Duct cleaning and inspection",
+        description: "Cleaned ducts and sealed minor leaks",
         status: "draft",
       },
     ];
@@ -180,6 +214,37 @@ export class MemStorage implements IStorage {
     sampleInvoices.forEach((invoice) => {
       const id = this.nextInvoiceId++;
       this.invoices.set(id, { id, ...invoice });
+    });
+
+    // Sample quotes
+    const sampleQuotes: Omit<Quote, "id" | "convertedInvoiceId">[] = [
+      {
+        quoteNumber: "Q-0001",
+        date: new Date().toISOString().split('T')[0],
+        billToName: "Ferde Estime",
+        billToAddress: "123 Cooling Lane, Boca Raton, FL",
+        workDescription: "Install new 3-ton condenser and air handler with duct sealing.",
+        totalAmount: 8200,
+        paymentTerms: "Total amount will be paid equally in quarterly payments.",
+        requiredStatement: "Quote includes all the work shown on the worksheet attached with this quote.",
+        includeRequiredStatement: true,
+      },
+      {
+        quoteNumber: "Q-0002",
+        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        billToName: "Sarah Johnson",
+        billToAddress: "456 Maple Ave, Chicago, IL 60601",
+        workDescription: "Replace thermostat and run diagnostics on existing furnace.",
+        totalAmount: 650,
+        paymentTerms: "Total amount will be paid equally in quarterly payments.",
+        requiredStatement: "Quote includes all the work shown on the worksheet attached with this quote.",
+        includeRequiredStatement: true,
+      },
+    ];
+
+    sampleQuotes.forEach((quote) => {
+      const id = this.nextQuoteId++;
+      this.quotes.set(id, { id, ...quote });
     });
   }
 
@@ -250,10 +315,16 @@ export class MemStorage implements IStorage {
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     const id = this.nextInvoiceId++;
     const customer = this.customers.get(invoice.customerId);
+    const invoiceNumber =
+      invoice.invoiceNumber || `INV-${String(id).padStart(4, "0")}`;
+    const providedCustomerName = (invoice as any).customerName as
+      | string
+      | undefined;
     const newInvoice: Invoice = {
       id,
       ...invoice,
-      customerName: customer?.name,
+      invoiceNumber,
+      customerName: providedCustomerName || customer?.name,
       status: "draft",
     };
     this.invoices.set(id, newInvoice);
@@ -271,6 +342,57 @@ export class MemStorage implements IStorage {
 
   async deleteInvoice(id: number): Promise<boolean> {
     return this.invoices.delete(id);
+  }
+
+  // Quotes
+  async getQuotes(): Promise<Quote[]> {
+    return Array.from(this.quotes.values());
+  }
+
+  async getQuote(id: number): Promise<Quote | undefined> {
+    return this.quotes.get(id);
+  }
+
+  async createQuote(quote: InsertQuote): Promise<Quote> {
+    const id = this.nextQuoteId++;
+    const quoteNumber = quote.quoteNumber || `Q-${String(id).padStart(4, "0")}`;
+    const newQuote: Quote = {
+      id,
+      ...quote,
+      quoteNumber,
+    };
+    this.quotes.set(id, newQuote);
+    return newQuote;
+  }
+
+  async deleteQuote(id: number): Promise<boolean> {
+    return this.quotes.delete(id);
+  }
+
+  async convertQuoteToInvoice(id: number): Promise<Invoice | undefined> {
+    const quote = this.quotes.get(id);
+    if (!quote) return undefined;
+
+    const matchingCustomer = Array.from(this.customers.values()).find(
+      (customer) =>
+        customer.name.toLowerCase().trim() === quote.billToName.toLowerCase().trim()
+    );
+
+    const customerId = matchingCustomer?.id ?? 0;
+
+    const invoice = await this.createInvoice({
+      customerId,
+      customerName: quote.billToName,
+      invoiceNumber: undefined,
+      date: quote.date,
+      labor_cost: quote.totalAmount,
+      workPerformed: quote.workDescription,
+      technician: "",
+      description: quote.paymentTerms,
+    } as InsertInvoice & { customerName?: string });
+
+    this.quotes.set(id, { ...quote, convertedInvoiceId: invoice.id });
+    return invoice;
   }
 
   // Inventory

@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, Package, FileText, LogOut } from "lucide-react";
+import { Home, Users, Calendar, Package, FileText, QuoteIcon } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -32,6 +32,11 @@ const menuItems = [
     title: "Invoices",
     url: "/invoices",
     icon: FileText,
+  },
+  {
+    title: "Quotes",
+    url: "/quotes",
+    icon: QuoteIcon,
   },
   {
     title: "Inventory",

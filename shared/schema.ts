@@ -69,6 +69,27 @@ export const insertInvoiceSchema = invoiceSchema.omit({ id: true, customerName: 
 export type Invoice = z.infer<typeof invoiceSchema>;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
+// Quote Schema
+export const quoteSchema = z.object({
+  id: z.number(),
+  quoteNumber: z.string(),
+  date: z.string(),
+  billToName: z.string(),
+  billToAddress: z.string(),
+  workDescription: z.string(),
+  totalAmount: z.number(),
+  paymentTerms: z.string().optional(),
+  requiredStatement: z.string().optional(),
+  includeRequiredStatement: z.boolean().optional(),
+  signatureImage: z.string().optional(),
+  convertedInvoiceId: z.number().optional(),
+});
+
+export const insertQuoteSchema = quoteSchema.omit({ id: true, convertedInvoiceId: true });
+
+export type Quote = z.infer<typeof quoteSchema>;
+export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+
 // Dashboard Stats
 export interface DashboardStats {
   totalCustomers: number;

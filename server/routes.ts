@@ -1,7 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertAppointmentSchema, insertInvoiceSchema, insertInventoryItemSchema } from "@shared/schema";
+import {
+  insertCustomerSchema,
+  insertAppointmentSchema,
+  insertInvoiceSchema,
+  insertInventoryItemSchema,
+  insertQuoteSchema,
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
@@ -217,6 +223,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting invoice:", error);
       res.status(500).json({ error: "Failed to delete invoice" });
+    }
+  });
+
+  // Quotes endpoints
+  app.get("/api/quotes", async (_req, res) => {
+    try {
+      const quotes = await storage.getQuotes();
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      res.status(500).json({ error: "Failed to fetch quotes" });
+    }
+  });
+
+  app.get("/api/quotes/:id", async (req, res) => {
+    try {
+      const quote = await storage.getQuote(parseInt(req.params.id));
+      if (!quote) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error) {
+      console.error("Error fetching quote:", error);
+      res.status(500).json({ error: "Failed to fetch quote" });
+    }
+  });
+
+  app.post("/api/quotes", async (req, res) => {
+    try {
+      const validatedData = insertQuoteSchema.parse(req.body);
+      const quote = await storage.createQuote(validatedData);
+      res.status(201).json(quote);
+    } catch (error) {
+      console.error("Error creating quote:", error);
+      res.status(400).json({ error: "Invalid quote data" });
+    }
+  });
+
+  app.delete("/api/quotes/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteQuote(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting quote:", error);
+      res.status(500).json({ error: "Failed to delete quote" });
+    }
+  });
+
+  app.post("/api/quotes/:id/convert", async (req, res) => {
+    try {
+      const invoice = await storage.convertQuoteToInvoice(parseInt(req.params.id));
+      if (!invoice) {
+        return res.status(404).json({ error: "Quote not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error converting quote:", error);
+      res.status(500).json({ error: "Failed to convert quote" });
     }
   });
 

@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import Customers from "@/pages/customers";
 import Appointments from "@/pages/appointments";
 import Invoices from "@/pages/invoices";
+import Quotes from "@/pages/quotes";
 import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
 
@@ -48,6 +49,7 @@ function AppLayout() {
                 <Route path="/customers" component={Customers} />
                 <Route path="/appointments" component={Appointments} />
                 <Route path="/invoices" component={Invoices} />
+                <Route path="/quotes" component={Quotes} />
                 <Route path="/inventory" component={Inventory} />
                 <Route path="/">
                   {() => <Redirect to="/dashboard" />}

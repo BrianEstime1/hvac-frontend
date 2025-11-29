@@ -47,6 +47,24 @@ export function transformInventoryFromAPI(apiItem: any): any {
     name: apiItem.name,
     quantity: apiItem.quantity,
     category: apiItem.category,
-    price: apiItem.cost_per_unit,
+    price: apiItem.cost_per_unit ?? apiItem.price,
+  };
+}
+
+export function transformQuoteFromAPI(apiQuote: any): any {
+  return {
+    id: apiQuote.id,
+    quoteNumber: apiQuote.quote_number || apiQuote.quoteNumber,
+    date: apiQuote.date,
+    billToName: apiQuote.bill_to_name || apiQuote.billToName,
+    billToAddress: apiQuote.bill_to_address || apiQuote.billToAddress,
+    workDescription: apiQuote.work_description || apiQuote.workDescription,
+    totalAmount: apiQuote.total_amount ?? apiQuote.totalAmount,
+    paymentTerms: apiQuote.payment_terms || apiQuote.paymentTerms,
+    requiredStatement: apiQuote.required_statement || apiQuote.requiredStatement,
+    includeRequiredStatement:
+      apiQuote.include_required_statement ?? apiQuote.includeRequiredStatement,
+    signatureImage: apiQuote.signature_image || apiQuote.signatureImage,
+    convertedInvoiceId: apiQuote.converted_invoice_id || apiQuote.convertedInvoiceId,
   };
 }
