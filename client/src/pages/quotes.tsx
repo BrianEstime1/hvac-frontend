@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Plus, Trash2, Download, Repeat2 } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,61 +31,72 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import {
-  insertQuoteSchema,
-  type InsertQuote,
-  type Quote,
-} from "@shared/schema";
 import { createQuoteHTML, generateQuotePDF } from "@/lib/invoice-pdf";
-import { Skeleton } from "@/components/ui/skeleton";
+import { insertQuoteSchema, type Customer, type InsertQuote, type Quote } from "@shared/schema";
 
-const REQUIRED_STATEMENT =
-  "Quote includes all the work shown on the worksheet attached with this quote.";
+const STATUS_OPTIONS = ["draft", "sent", "accepted", "rejected"];
+const formatStatusLabel = (status: string) =>
+  status.charAt(0).toUpperCase() + status.slice(1);
 
 export default function Quotes() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("date");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
   const [deletingQuote, setDeletingQuote] = useState<Quote | null>(null);
   const { toast } = useToast();
 
-  const { data: quotes, isLoading } = useQuery<Quote[]>({
-    queryKey: ["/api/quotes"],
-  });
+  const quotesQuery = useQuery<Quote[]>({ queryKey: ["/api/quotes"] });
+  const { data: quotes, isLoading, isError, refetch } = quotesQuery;
+
+  const { data: customers } = useQuery<Customer[]>({ queryKey: ["/api/customers"] });
 
   const form = useForm<InsertQuote>({
     resolver: zodResolver(insertQuoteSchema),
     defaultValues: {
-      quoteNumber: "",
-      date: new Date().toISOString().split("T")[0],
-      billToName: "",
-      billToAddress: "",
-      workDescription: "",
-      totalAmount: 0,
-      paymentTerms: "Total amount will be paid equally in quarterly payments.",
-      requiredStatement: REQUIRED_STATEMENT,
-      includeRequiredStatement: true,
-      signatureImage: "",
+      customerId: 0,
+      title: "",
+      description: "",
+      total: 0,
+      status: "draft",
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: (payload: InsertQuote) => apiRequest("POST", "/api/quotes", payload),
+  const saveMutation = useMutation({
+    mutationFn: async (data: InsertQuote) => {
+      const payload = {
+        customer_id: data.customerId,
+        title: data.title,
+        description: data.description || "",
+        total: data.total,
+        status: data.status || "draft",
+      };
+
+      if (editingQuote) {
+        return apiRequest("PUT", `/api/quotes/${editingQuote.id}`, payload);
+      }
+      return apiRequest("POST", "/api/quotes", payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       setIsDialogOpen(false);
-      form.reset();
-      toast({ description: "Quote created successfully" });
+      setEditingQuote(null);
+      form.reset({ customerId: 0, title: "", description: "", total: 0, status: "draft" });
+      toast({ description: "Quote saved successfully" });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        description: error.message || "Failed to create quote",
+        description: error?.message || "Failed to save quote",
       });
     },
   });
@@ -99,62 +110,57 @@ export default function Quotes() {
     },
   });
 
-  const convertMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("POST", `/api/quotes/${id}/convert`),
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiRequest("PUT", `/api/quotes/${id}`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      toast({ description: "Quote converted to invoice" });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        description: error.message || "Failed to convert quote",
+        description: error?.message || "Failed to update status",
       });
     },
   });
 
+  const normalizedTerm = searchTerm.toLowerCase();
   const filteredQuotes = useMemo(() => {
-    const normalized = searchTerm.toLowerCase();
-    const list = (quotes || []).filter(
-      (quote) =>
-        quote.billToName.toLowerCase().includes(normalized) ||
-        quote.workDescription.toLowerCase().includes(normalized)
-    );
-
-    return list.sort((a, b) => {
-      if (sortBy === "total") return (b.totalAmount || 0) - (a.totalAmount || 0);
-      if (sortBy === "quoteNumber") return a.quoteNumber.localeCompare(b.quoteNumber);
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    const normalized = normalizedTerm;
+    const filtered = (quotes ?? []).filter((q) => {
+      const name = q.customerName?.toLowerCase() ?? "";
+      const title = q.title?.toLowerCase() ?? "";
+      const status = q.status?.toLowerCase() ?? "";
+      return (
+        name.includes(normalized) ||
+        title.includes(normalized) ||
+        status.includes(normalized)
+      );
     });
-  }, [quotes, searchTerm, sortBy]);
 
-  const handleDownload = async (quote: Quote) => {
-    const container = document.createElement("div");
-    container.id = `quote-content-${quote.id}`;
-    container.innerHTML = createQuoteHTML(quote);
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
-    document.body.appendChild(container);
+    return filtered.sort((a, b) => {
+      const dateB = new Date(b.createdAt || "").getTime() || 0;
+      const dateA = new Date(a.createdAt || "").getTime() || 0;
+      return dateB - dateA;
+    });
+  }, [quotes, normalizedTerm]);
 
-    await generateQuotePDF(quote, `Quote-${quote.quoteNumber}`);
-    document.body.removeChild(container);
-    toast({ description: "Quote PDF generated" });
+  const handleOpenNew = () => {
+    setEditingQuote(null);
+    form.reset({ customerId: 0, title: "", description: "", total: 0, status: "draft" });
+    setIsDialogOpen(true);
   };
 
-  const handleSubmit = (values: InsertQuote) => {
-    createMutation.mutate(values);
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      form.setValue("signatureImage", reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleEdit = (quote: Quote) => {
+    setEditingQuote(quote);
+    form.reset({
+      customerId: quote.customerId,
+      title: quote.title || "",
+      description: quote.description || "",
+      total: Number(quote.total || 0),
+      status: (quote.status || "draft").toLowerCase(),
+    });
+    setIsDialogOpen(true);
   };
 
   const handleDelete = () => {
@@ -163,44 +169,77 @@ export default function Quotes() {
     }
   };
 
+  const handleSubmit = (values: InsertQuote) => {
+    saveMutation.mutate(values);
+  };
+
+  const handleDownload = async (quote: Quote) => {
+    const matchedCustomer = customers?.find((c) => c.id === quote.customerId);
+    const quoteForPdf: Quote = {
+      ...quote,
+      customerName:
+        quote.customerName || matchedCustomer?.name || `Customer #${quote.customerId}`,
+      customerAddress: quote.customerAddress || matchedCustomer?.address || "",
+    };
+
+    const container = document.createElement("div");
+    container.id = `quote-content-${quoteForPdf.id}`;
+    container.innerHTML = createQuoteHTML(quoteForPdf);
+    container.style.position = "absolute";
+    container.style.left = "-9999px";
+    document.body.appendChild(container);
+
+    await generateQuotePDF(quoteForPdf, `Quote-${quoteForPdf.quoteNumber || quoteForPdf.id}`);
+    document.body.removeChild(container);
+    toast({ description: "Quote PDF generated" });
+  };
+
+  const getCustomerLabel = (quote: Quote) => {
+    const name = quote.customerName || `Customer #${quote.customerId}`;
+    return name;
+  };
+
+  const renderErrorState = () => (
+    <Card>
+      <CardContent className="py-12 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">Unable to load quotes right now.</p>
+        <Button onClick={() => refetch()}>Retry</Button>
+      </CardContent>
+    </Card>
+  );
+
+  const formatCurrency = (value: number | undefined) =>
+    `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Quotes</h1>
           <p className="text-sm text-muted-foreground">
-            Build quotes that mirror invoices with FerdAir branding
+            Create, track, and export customer quotes.
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={handleOpenNew} data-testid="button-add-quote">
           <Plus className="w-4 h-4 mr-2" />
           New Quote
         </Button>
       </div>
 
       <Card>
-        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Input
-              placeholder="Search by customer or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64"
-            />
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date">Newest</SelectItem>
-                <SelectItem value="quoteNumber">Quote #</SelectItem>
-                <SelectItem value="total">Amount</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <CardTitle>Quotes</CardTitle>
+          <Input
+            placeholder="Search by customer, title, or status..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="md:w-80"
+          />
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isError ? (
+            renderErrorState()
+          ) : isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
@@ -211,68 +250,87 @@ export default function Quotes() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Quote #</TableHead>
-                  <TableHead>Bill To</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Title</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created at</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredQuotes.length ? (
-                  filteredQuotes.map((quote) => (
-                    <TableRow key={quote.id}>
-                      <TableCell className="font-medium">{quote.quoteNumber}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{quote.billToName}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-1">
-                          {quote.workDescription}
-                        </div>
-                      </TableCell>
-                      <TableCell>{quote.date}</TableCell>
-                      <TableCell className="font-semibold">${quote.totalAmount.toLocaleString()}</TableCell>
-                      <TableCell>
-                        {quote.convertedInvoiceId ? (
-                          <Badge variant="secondary">Converted</Badge>
-                        ) : (
-                          <Badge variant="outline">Draft</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDownload(quote)}
-                            title="Download PDF"
+                  filteredQuotes.map((quote) => {
+                    const statusLabel = (quote.status || "draft").toLowerCase();
+                    return (
+                      <TableRow key={quote.id}>
+                        <TableCell className="font-medium">
+                          {quote.quoteNumber || `Q-${quote.id}`}
+                        </TableCell>
+                        <TableCell>{getCustomerLabel(quote)}</TableCell>
+                        <TableCell className="max-w-xs truncate" title={quote.title || ""}>
+                          {quote.title || "Untitled"}
+                        </TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(quote.total)}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={statusLabel}
+                            onValueChange={(value) =>
+                              statusMutation.mutate({ id: quote.id, status: value })
+                            }
                           >
-                            <Download className="w-4 h-4 text-blue-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => convertMutation.mutate(quote.id)}
-                            disabled={!!quote.convertedInvoiceId || convertMutation.isPending}
-                            title="Convert to Invoice"
-                          >
-                            <Repeat2 className="w-4 h-4 text-green-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeletingQuote(quote)}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                  {formatStatusLabel(option)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          {quote.createdAt
+                            ? new Date(quote.createdAt).toLocaleDateString()
+                            : ""}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDownload(quote)}
+                              title="Export PDF"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(quote)}
+                              title="Edit Quote"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeletingQuote(quote)}
+                              title="Delete Quote"
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No quotes yet. Create your first quote to get started.
+                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                      No quotes found.
                     </TableCell>
                   </TableRow>
                 )}
@@ -283,51 +341,48 @@ export default function Quotes() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Create Quote</DialogTitle>
+            <DialogTitle>{editingQuote ? "Edit Quote" : "New Quote"}</DialogTitle>
             <DialogDescription>
-              Quotes mirror invoices but include required statements and payment terms.
+              Add the quote details, then save to keep it in sync with your customers.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="quoteNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quote Number (optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Auto-generated" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
               <FormField
                 control={form.control}
-                name="billToName"
+                name="customerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bill To Name</FormLabel>
+                    <FormLabel>Customer</FormLabel>
+                    <Select
+                      value={field.value ? String(field.value) : undefined}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a customer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(customers ?? []).map((customer) => (
+                          <SelectItem key={customer.id} value={String(customer.id)}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Customer or business" />
+                      <Input {...field} placeholder="Maintenance quote" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -335,29 +390,12 @@ export default function Quotes() {
               />
               <FormField
                 control={form.control}
-                name="billToAddress"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bill To Address</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Street, City, State" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="workDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Scope of Work / Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder="Describe the work being proposed"
-                        className="min-h-[120px]"
-                      />
+                      <Textarea {...field} placeholder="Summarize the proposed work" className="min-h-[120px]" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -366,10 +404,10 @@ export default function Quotes() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="totalAmount"
+                  name="total"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Amount</FormLabel>
+                      <FormLabel>Total</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -384,67 +422,30 @@ export default function Quotes() {
                 />
                 <FormField
                   control={form.control}
-                  name="paymentTerms"
+                  name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Payment Terms</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} className="min-h-[80px]" />
-                      </FormControl>
+                      <FormLabel>Status</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {formatStatusLabel(option)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-              <div className="flex items-center justify-between rounded-md border p-3">
-                <FormField
-                  control={form.control}
-                  name="includeRequiredStatement"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 mb-0">
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div>
-                        <FormLabel className="mb-1">Include Required Statement</FormLabel>
-                        <p className="text-xs text-muted-foreground">Automatically adds the FerdAir quote notice.</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="requiredStatement"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Required Statement</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} className="min-h-[80px]" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="signatureImage"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Signature Image (optional)</FormLabel>
-                    <FormControl>
-                      <Input type="file" accept="image/*" onChange={handleFileUpload} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <DialogFooter>
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Saving..." : "Save Quote"}
+                <Button type="submit" disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? "Saving..." : "Save Quote"}
                 </Button>
               </DialogFooter>
             </form>
@@ -457,14 +458,18 @@ export default function Quotes() {
           <DialogHeader>
             <DialogTitle>Delete Quote</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this quote? This action cannot be undone.
+              This will permanently remove the quote. Are you sure you want to continue?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeletingQuote(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
               Delete
             </Button>
           </DialogFooter>

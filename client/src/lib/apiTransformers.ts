@@ -52,19 +52,19 @@ export function transformInventoryFromAPI(apiItem: any): any {
 }
 
 export function transformQuoteFromAPI(apiQuote: any): any {
+  const customerId = apiQuote.customer_id ?? apiQuote.customerId ?? 0;
+  const fallbackName = customerId ? `Customer #${customerId}` : "Customer #";
   return {
     id: apiQuote.id,
-    quoteNumber: apiQuote.quote_number || apiQuote.quoteNumber,
-    date: apiQuote.date,
-    billToName: apiQuote.bill_to_name || apiQuote.billToName,
-    billToAddress: apiQuote.bill_to_address || apiQuote.billToAddress,
-    workDescription: apiQuote.work_description || apiQuote.workDescription,
-    totalAmount: apiQuote.total_amount ?? apiQuote.totalAmount,
-    paymentTerms: apiQuote.payment_terms || apiQuote.paymentTerms,
-    requiredStatement: apiQuote.required_statement || apiQuote.requiredStatement,
-    includeRequiredStatement:
-      apiQuote.include_required_statement ?? apiQuote.includeRequiredStatement,
-    signatureImage: apiQuote.signature_image || apiQuote.signatureImage,
-    convertedInvoiceId: apiQuote.converted_invoice_id || apiQuote.convertedInvoiceId,
+    customerId,
+    customerName:
+      apiQuote.customer_name || apiQuote.customerName || fallbackName || "",
+    customerAddress: apiQuote.customer_address || apiQuote.customerAddress || "",
+    title: apiQuote.title || apiQuote.quote_title || "",
+    description: apiQuote.description || apiQuote.details || "",
+    total: Number(apiQuote.total ?? apiQuote.total_amount ?? 0),
+    status: apiQuote.status || "",
+    createdAt: apiQuote.created_at || apiQuote.createdAt || "",
+    quoteNumber: apiQuote.quote_number || apiQuote.quoteNumber || undefined,
   };
 }

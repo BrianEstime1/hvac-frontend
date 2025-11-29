@@ -72,20 +72,24 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 // Quote Schema
 export const quoteSchema = z.object({
   id: z.number(),
-  quoteNumber: z.string(),
-  date: z.string(),
-  billToName: z.string(),
-  billToAddress: z.string(),
-  workDescription: z.string(),
-  totalAmount: z.number(),
-  paymentTerms: z.string().optional(),
-  requiredStatement: z.string().optional(),
-  includeRequiredStatement: z.boolean().optional(),
-  signatureImage: z.string().optional(),
-  convertedInvoiceId: z.number().optional(),
+  customerId: z.number(),
+  customerName: z.string().optional(),
+  customerAddress: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  total: z.number().optional(),
+  status: z.string().optional(),
+  createdAt: z.string(),
+  quoteNumber: z.string().optional(),
 });
 
-export const insertQuoteSchema = quoteSchema.omit({ id: true, convertedInvoiceId: true });
+export const insertQuoteSchema = z.object({
+  customerId: z.number().min(1, "Customer is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  total: z.number().min(0, "Total must be positive"),
+  status: z.string().optional(),
+});
 
 export type Quote = z.infer<typeof quoteSchema>;
 export type InsertQuote = z.infer<typeof insertQuoteSchema>;
