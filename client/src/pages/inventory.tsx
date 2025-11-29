@@ -79,7 +79,7 @@ export default function Inventory() {
       // 🔧 CHANGE #1: Trim and normalize data before sending
       const payload = {
         name: data.name.trim(),
-        category: data.category.trim().toLowerCase(),
+        category: (data.category || "").trim().toLowerCase(),
         quantity: Number(data.quantity),
         price: Number(data.price || 0),
       };
@@ -105,7 +105,7 @@ export default function Inventory() {
       // 🔧 CHANGE #1: Trim and normalize data before sending
       const payload = {
         name: data.item.name.trim(),
-        category: data.item.category.trim().toLowerCase(),
+        category: (data.item.category || "").trim().toLowerCase(),
         quantity: Number(data.item.quantity),
         price: Number(data.item.price || 0),
       };

@@ -1,15 +1,18 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
-import { 
-  transformAppointmentFromAPI, 
-  transformInvoiceFromAPI, 
-  transformCustomerFromAPI, 
-  transformInventoryFromAPI 
+import {
+  transformAppointmentFromAPI,
+  transformInvoiceFromAPI,
+  transformCustomerFromAPI,
+  transformInventoryFromAPI,
+  transformQuoteFromAPI,
 } from "./apiTransformers";
 
-// Configure axios instance to use deployed Render backend
+const baseURL = import.meta.env.VITE_API_BASE_URL || "";
+
+// Configure axios instance to use configured backend
 export const api = axios.create({
-  baseURL: "https://hvac-management-api.onrender.com",
+  baseURL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -56,7 +59,7 @@ export const getQueryFn: <T>(options: {
       
       if (path.includes("/api/appointments")) {
         // Transform appointments
-        transformedData = Array.isArray(response.data) 
+        transformedData = Array.isArray(response.data)
           ? response.data.map(transformAppointmentFromAPI)
           : transformAppointmentFromAPI(response.data);
       } else if (path.includes("/api/invoices")) {
@@ -74,6 +77,10 @@ export const getQueryFn: <T>(options: {
         transformedData = Array.isArray(response.data)
           ? response.data.map(transformInventoryFromAPI)
           : transformInventoryFromAPI(response.data);
+      } else if (path.includes("/api/quotes")) {
+        transformedData = Array.isArray(response.data)
+          ? response.data.map(transformQuoteFromAPI)
+          : transformQuoteFromAPI(response.data);
       } else if (path.includes("/api/dashboard/stats")) {
         // Transform dashboard stats
         transformedData = {
