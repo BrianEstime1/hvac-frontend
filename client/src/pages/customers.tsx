@@ -88,11 +88,21 @@ export default function Customers() {
     },
   });
 
-  const filteredCustomers = customers?.filter((customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
+  const normalized = searchTerm.toLowerCase();
+
+  const filteredCustomers = (customers ?? []).filter((customer) => {
+    const name = customer.name?.toLowerCase() ?? "";
+    const email = customer.email?.toLowerCase() ?? "";
+    const phone = customer.phone?.toLowerCase() ?? "";
+    const address = customer.address?.toLowerCase() ?? "";
+
+    return (
+      name.includes(normalized) ||
+      email.includes(normalized) ||
+      phone.includes(normalized) ||
+      address.includes(normalized)
   );
+});
 
   const handleOpenAddDialog = () => {
     form.reset();
