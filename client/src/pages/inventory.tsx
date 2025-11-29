@@ -162,10 +162,22 @@ export default function Inventory() {
     }
   };
 
-  const filteredItems = items?.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category?.toLowerCase().includes(searchTerm.toLowerCase())
+ const normalized = searchTerm.toLowerCase();
+
+const filteredItems = (items ?? []).filter((item) => {
+  const name = item.name?.toLowerCase() ?? "";
+  const category = item.category?.toLowerCase() ?? "";
+  const price = item.price?.toString().toLowerCase() ?? "";
+  const quantity = item.quantity?.toString().toLowerCase() ?? "";
+
+  return (
+    name.includes(normalized) ||
+    category.includes(normalized) ||
+    price.includes(normalized) ||
+    quantity.includes(normalized)
   );
+});
+
 
   const getStockBadgeVariant = (quantity: number) => {
     if (quantity < 10) return "destructive";
