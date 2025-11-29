@@ -8,7 +8,10 @@ import {
   transformQuoteFromAPI,
 } from "./apiTransformers";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "";
+const DEFAULT_API_BASE_URL = "https://hvac-management-api.onrender.com";
+
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL;
 
 // Configure axios instance to use configured backend
 export const api = axios.create({
