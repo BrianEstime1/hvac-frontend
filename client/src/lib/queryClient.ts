@@ -51,8 +51,9 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
-      const response = await api.get(queryKey.join("/") as string);
-      const path = queryKey.join("/");
+      const path = queryKey[0] as string;
+      const response = await api.get(path);
+
       
       // Transform data based on endpoint
       let transformedData = response.data;
