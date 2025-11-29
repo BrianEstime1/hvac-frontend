@@ -61,7 +61,7 @@ export function createInvoiceHTML(
     "Service performed";
 
   return `
-    <div style="padding: 40px; background: white; color: #000; font-family: Arial, sans-serif;">
+    <div style="padding: 40px; background: white; color: #000; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.7;">
     
       <!-- Header -->
       <div style="margin-bottom: 40px;">
@@ -99,7 +99,7 @@ export function createInvoiceHTML(
       <!-- Work Performed -->
       <div style="margin-bottom: 30px;">
         <p style="margin: 0 0 8px 0; color: #333; font-weight: bold;">Work Performed</p>
-        <p style="margin: 0; color: #666;">${workPerformed}</p>
+        <p style="margin: 0; color: #444; white-space: pre-wrap; word-break: break-word; font-size: 15px; line-height: 1.8;">${workPerformed}</p>
 
         ${
           invoice.description
