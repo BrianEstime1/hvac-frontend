@@ -38,7 +38,7 @@ interface DocumentPayload {
 }
 
 const buildHeader = () => `
-  <div style="text-align: center; margin-bottom: 28px;">
+  <div style="text-align: center; margin-bottom: 20px;">
     <img src="/ferdair-logo.png" alt="FerdAir" style="height: 88px; object-fit: contain; margin-bottom: 12px;" />
     <div style="font-size: 20px; font-weight: 800; letter-spacing: 0.02em;">${BRAND_INFO.name}</div>
     <div style="font-size: 18px; font-weight: 700;">${BRAND_INFO.services}</div>
@@ -83,7 +83,7 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
       : "";
 
   const totalsBlock = `
-    <div style="margin-bottom: 20px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc;">
+    <div style="margin-bottom: 18px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc;">
       ${laborAmountBlock}
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 800; padding-top: 12px;">
         <span>TOTAL</span>
@@ -96,8 +96,8 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
     : "";
 
   const signatureBlock = `
-    <div style="margin-top: 28px;">
-      <div style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">Signature</div>
+    <div style="margin-top: 22px;">
+      <div style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Signature</div>
       <div style="height: 80px; display: flex; align-items: center;">
         ${payload.signatureImage ? `<img src="${payload.signatureImage}" style="height: 72px; object-fit: contain;" />` : ""}
       </div>
@@ -106,10 +106,10 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
   `;
 
   return `
-    <div style="padding: 52px; background: #fff; color: #0f172a; font-family: 'Helvetica', 'Arial', sans-serif; font-size: 16px; line-height: 1.8; max-width: 850px; margin: 0 auto;">
+    <div style="padding: 32px 40px 72px; background: #fff; color: #0f172a; font-family: 'Helvetica', 'Arial', sans-serif; font-size: 16px; line-height: 1.8; max-width: 850px; margin: 0 auto; box-sizing: border-box;">
       ${buildHeader()}
 
-      <div style="text-align: center; margin-bottom: 22px;">
+      <div style="text-align: center; margin-bottom: 16px;">
         <div style="font-size: 26px; font-weight: 800; letter-spacing: 0.08em;">${title}</div>
         <div style="display: flex; justify-content: center; gap: 24px; font-size: 16px; margin-top: 10px;">
           <span><strong>${payload.numberLabel}:</strong> ${payload.documentNumber}</span>
@@ -117,14 +117,14 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
         </div>
       </div>
 
-      <div style="margin-bottom: 20px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+      <div style="margin-bottom: 16px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
         <div style="font-size: 18px; font-weight: 800; margin-bottom: 6px;">Bill To</div>
         <div style="font-size: 16px; line-height: 1.8; white-space: pre-wrap;">${payload.billToName}<br/>${payload.billToAddress || ""}</div>
       </div>
 
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 16px;">
         ${titleBlock}
-        <div style="font-size: 16px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
+        <div style="font-size: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
       </div>
 
       ${totalsBlock}
@@ -133,7 +133,7 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
       ${paymentTermsBlock}
       ${signatureBlock}
 
-      <div style="margin-top: 20px; padding: 18px; border-radius: 12px; background: #f8fafc;">
+      <div style="margin-top: 16px; padding: 16px; border-radius: 12px; background: #f8fafc;">
         <div style="font-size: 18px; font-weight: 800; margin-bottom: 6px;">Payment Methods</div>
         <div style="font-size: 16px; line-height: 1.7;">
           <div><strong>Cash:</strong> Payment at time of service</div>
@@ -164,6 +164,7 @@ export async function generateInvoicePDF(
     scale: 3,
     useCORS: true,
     backgroundColor: "#ffffff",
+    scrollY: -window.scrollY,
   });
 
   const pdf = new jsPDF({
@@ -173,10 +174,19 @@ export async function generateInvoicePDF(
   });
 
   const imgData = canvas.toDataURL("image/png", 1.0);
-  const imgWidth = 210;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  let imgWidth = pageWidth;
+  let imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight, undefined, "FAST");
+  if (imgHeight > pageHeight) {
+    imgHeight = pageHeight;
+    imgWidth = (canvas.width * imgHeight) / canvas.height;
+  }
+
+  const xOffset = (pageWidth - imgWidth) / 2;
+
+  pdf.addImage(imgData, "PNG", xOffset, 0, imgWidth, imgHeight, undefined, "FAST");
   pdf.save(`${fileName}.pdf`);
 }
 
@@ -242,6 +252,7 @@ export async function generateQuotePDF(quote: Quote, fileName: string) {
     scale: 3,
     useCORS: true,
     backgroundColor: "#ffffff",
+    scrollY: -window.scrollY,
   });
 
   const pdf = new jsPDF({
@@ -251,9 +262,18 @@ export async function generateQuotePDF(quote: Quote, fileName: string) {
   });
 
   const imgData = canvas.toDataURL("image/png", 1.0);
-  const imgWidth = 210;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  let imgWidth = pageWidth;
+  let imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight, undefined, "FAST");
+  if (imgHeight > pageHeight) {
+    imgHeight = pageHeight;
+    imgWidth = (canvas.width * imgHeight) / canvas.height;
+  }
+
+  const xOffset = (pageWidth - imgWidth) / 2;
+
+  pdf.addImage(imgData, "PNG", xOffset, 0, imgWidth, imgHeight, undefined, "FAST");
   pdf.save(`${fileName}.pdf`);
 }
