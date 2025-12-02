@@ -29,6 +29,7 @@ interface DocumentPayload {
   title?: string;
   description: string;
   totalAmount: number;
+  laborAmount?: number;
   includeRequiredStatement?: boolean;
   requiredStatement?: string;
   paymentTerms?: string;
@@ -73,6 +74,23 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
     ? `<div style="margin-top: 12px; font-size: 16px; line-height: 1.75;">${payload.extraNote}</div>`
     : "";
 
+  const laborAmountBlock =
+    payload.laborAmount !== undefined
+      ? `<div style="display: flex; justify-content: space-between; font-size: 16px; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+          <span style="font-weight: 700;">Labor Cost</span>
+          <span>$${formatCurrency(payload.laborAmount)}</span>
+        </div>`
+      : "";
+
+  const totalsBlock = `
+    <div style="margin-bottom: 20px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc;">
+      ${laborAmountBlock}
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 800; padding-top: 12px;">
+        <span>TOTAL</span>
+        <span>$${formatCurrency(payload.totalAmount)}</span>
+      </div>
+    </div>`;
+
   const titleBlock = payload.title
     ? `<div style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">${payload.title}</div>`
     : "";
@@ -109,9 +127,7 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
         <div style="font-size: 16px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
       </div>
 
-      <div style="margin-bottom: 20px; text-align: center; padding: 20px; border-radius: 14px; background: #e0f2fe; color: #0ea5e9;">
-        <div style="font-size: 24px; font-weight: 900; letter-spacing: 0.05em;">TOTAL: $${formatCurrency(payload.totalAmount)}</div>
-      </div>
+      ${totalsBlock}
 
       ${requiredStatementBlock}
       ${paymentTermsBlock}
@@ -168,6 +184,9 @@ export function createInvoiceHTML(
   invoice: Invoice,
   customer: Customer | undefined
 ) {
+  const laborAmount =
+    invoice.labor_cost ?? invoice.subtotal ?? invoice.total ?? 0;
+
   const payload: DocumentPayload = {
     id: invoice.id,
     numberLabel: "Invoice #",
@@ -178,7 +197,8 @@ export function createInvoiceHTML(
     title: "Work Performed",
     description:
       invoice.workPerformed || (invoice as any).work_performed || invoice.description || "",
-    totalAmount: invoice.total ?? invoice.subtotal ?? invoice.labor_cost ?? 0,
+    totalAmount: laborAmount,
+    laborAmount,
     includeRequiredStatement: false,
     requiredStatement: "",
     paymentTerms: undefined,
@@ -197,7 +217,7 @@ export function createQuoteHTML(quote: Quote) {
     billToAddress: quote.customerAddress || "",
     title: quote.title || "Quote Details",
     description: quote.description || "",
-    totalAmount: quote.total || 0,
+    totalAmount: Number(quote.total || 0),
     includeRequiredStatement: true,
     requiredStatement: "Quote includes all the work shown on the attached worksheet.",
     paymentTerms: quote.status ? `Status: ${quote.status}` : undefined,
