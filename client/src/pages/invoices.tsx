@@ -287,7 +287,10 @@ export default function Invoices() {
           form.reset();
         }
       }}>
-        <DialogContent data-testid="dialog-invoice-form">
+        <DialogContent
+          data-testid="dialog-invoice-form"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Create New Invoice</DialogTitle>
             <DialogDescription>
@@ -430,11 +433,12 @@ export default function Invoices() {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}
                   data-testid="button-submit-invoice"
+                  className="min-h-11 text-base"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Invoice"}
                 </Button>
@@ -448,18 +452,22 @@ export default function Invoices() {
       <Dialog open={!!deletingInvoice} onOpenChange={(open) => {
         if (!open) setDeletingInvoice(null);
       }}>
-        <DialogContent data-testid="dialog-delete-invoice">
+        <DialogContent
+          data-testid="dialog-delete-invoice"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Delete Invoice</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this invoice? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={() => setDeletingInvoice(null)}
               data-testid="button-cancel-delete"
+              className="min-h-11 text-base"
             >
               Cancel
             </Button>
@@ -468,6 +476,7 @@ export default function Invoices() {
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete"
+              className="min-h-11 text-base"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>

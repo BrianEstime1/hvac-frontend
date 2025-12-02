@@ -216,7 +216,10 @@ export default function Appointments() {
           form.reset();
         }
       }}>
-        <DialogContent data-testid="dialog-appointment-form">
+        <DialogContent
+          data-testid="dialog-appointment-form"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Create New Appointment</DialogTitle>
             <DialogDescription>
@@ -318,7 +321,7 @@ export default function Appointments() {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
@@ -327,6 +330,7 @@ export default function Appointments() {
                     form.reset();
                   }}
                   data-testid="button-cancel"
+                  className="min-h-11 text-base"
                 >
                   Cancel
                 </Button>
@@ -334,6 +338,7 @@ export default function Appointments() {
                   type="submit"
                   disabled={createMutation.isPending}
                   data-testid="button-submit"
+                  className="min-h-11 text-base"
                 >
                   Create Appointment
                 </Button>
@@ -345,15 +350,23 @@ export default function Appointments() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingAppointment} onOpenChange={(open) => !open && setDeletingAppointment(null)}>
-        <DialogContent data-testid="dialog-delete-confirm">
+        <DialogContent
+          data-testid="dialog-delete-confirm"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Delete Appointment</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this appointment? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingAppointment(null)} data-testid="button-cancel-delete">
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setDeletingAppointment(null)}
+              data-testid="button-cancel-delete"
+              className="min-h-11 text-base"
+            >
               Cancel
             </Button>
             <Button
@@ -361,6 +374,7 @@ export default function Appointments() {
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete"
+              className="min-h-11 text-base"
             >
               Delete
             </Button>
