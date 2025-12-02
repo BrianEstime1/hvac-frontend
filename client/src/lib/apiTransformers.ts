@@ -13,6 +13,11 @@ export function transformAppointmentFromAPI(apiAppointment: any): any {
 }
 
 export function transformInvoiceFromAPI(apiInvoice: any): any {
+  const laborCost =
+    apiInvoice.labor_cost ?? apiInvoice.subtotal ?? apiInvoice.total ?? 0;
+  const subtotal = apiInvoice.subtotal ?? laborCost;
+  const total = apiInvoice.total ?? subtotal;
+
   return {
     id: apiInvoice.id,
     customerId: apiInvoice.customer_id,
@@ -21,11 +26,11 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     date: apiInvoice.date,
     technician: apiInvoice.technician,
     workPerformed: apiInvoice.work_performed,
-    labor_cost: apiInvoice.labor_cost ?? apiInvoice.total ?? 0,
+    labor_cost: laborCost,
     materials_cost: apiInvoice.materials_cost,
-    subtotal: apiInvoice.subtotal,
+    subtotal,
     tax: apiInvoice.tax,
-    total: apiInvoice.total,
+    total,
     description: apiInvoice.description,
     status: apiInvoice.status,
   };
