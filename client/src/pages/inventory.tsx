@@ -310,7 +310,10 @@ const filteredItems = (items ?? []).filter((item) => {
           form.reset();
         }
       }}>
-        <DialogContent data-testid="dialog-inventory">
+        <DialogContent
+          data-testid="dialog-inventory"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>{editingItem ? "Edit Item" : "Add Inventory Item"}</DialogTitle>
             <DialogDescription>
@@ -400,7 +403,7 @@ const filteredItems = (items ?? []).filter((item) => {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
@@ -410,6 +413,7 @@ const filteredItems = (items ?? []).filter((item) => {
                     form.reset();
                   }}
                   data-testid="button-cancel"
+                  className="min-h-11 text-base"
                 >
                   Cancel
                 </Button>
@@ -417,6 +421,7 @@ const filteredItems = (items ?? []).filter((item) => {
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
                   data-testid="button-submit"
+                  className="min-h-11 text-base"
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? "Saving..."
@@ -434,18 +439,22 @@ const filteredItems = (items ?? []).filter((item) => {
       <Dialog open={!!deletingItem} onOpenChange={(open) => {
         if (!open) setDeletingItem(null);
       }}>
-        <DialogContent data-testid="dialog-delete-inventory">
+        <DialogContent
+          data-testid="dialog-delete-inventory"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Delete Item</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete "{deletingItem?.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={() => setDeletingItem(null)}
               data-testid="button-cancel-delete"
+              className="min-h-11 text-base"
             >
               Cancel
             </Button>
@@ -454,6 +463,7 @@ const filteredItems = (items ?? []).filter((item) => {
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete"
+              className="min-h-11 text-base"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>

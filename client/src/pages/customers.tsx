@@ -228,7 +228,10 @@ export default function Customers() {
           form.reset();
         }
       }}>
-        <DialogContent data-testid="dialog-customer-form">
+        <DialogContent
+          data-testid="dialog-customer-form"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>{editingCustomer ? "Edit Customer" : "Add New Customer"}</DialogTitle>
             <DialogDescription>
@@ -289,7 +292,7 @@ export default function Customers() {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
@@ -299,6 +302,7 @@ export default function Customers() {
                     form.reset();
                   }}
                   data-testid="button-cancel"
+                  className="min-h-11 text-base"
                 >
                   Cancel
                 </Button>
@@ -306,6 +310,7 @@ export default function Customers() {
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
                   data-testid="button-submit"
+                  className="min-h-11 text-base"
                 >
                   {editingCustomer ? "Update" : "Add"} Customer
                 </Button>
@@ -317,15 +322,23 @@ export default function Customers() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingCustomer} onOpenChange={(open) => !open && setDeletingCustomer(null)}>
-        <DialogContent data-testid="dialog-delete-confirm">
+        <DialogContent
+          data-testid="dialog-delete-confirm"
+          className="max-h-[90vh] overflow-y-auto"
+        >
           <DialogHeader>
             <DialogTitle>Delete Customer</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete {deletingCustomer?.name}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingCustomer(null)} data-testid="button-cancel-delete">
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setDeletingCustomer(null)}
+              data-testid="button-cancel-delete"
+              className="min-h-11 text-base"
+            >
               Cancel
             </Button>
             <Button
@@ -333,6 +346,7 @@ export default function Customers() {
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete"
+              className="min-h-11 text-base"
             >
               Delete
             </Button>
