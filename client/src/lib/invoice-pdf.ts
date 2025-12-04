@@ -139,6 +139,7 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
           <div><strong>Cash:</strong> Payment at time of service</div>
           <div><strong>Zelle:</strong> ferde.estime@yahoo.com</div>
           <div><strong>Check:</strong> Payable to FERDAIR LLC</div>
+          <div><strong>Credit Card:</strong> Pay securely with any major credit card</div>
         </div>
         ${extraNoteBlock}
       </div>
