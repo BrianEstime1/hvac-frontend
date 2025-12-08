@@ -33,6 +33,16 @@ function AppLayout() {
     "--sidebar-width-icon": "3rem",
   };
 
+  // Simple front-end auth check:
+  // if there's no flag in localStorage, send them back to "/"
+  const isAuthed =
+    typeof window !== "undefined" &&
+    localStorage.getItem("ferdair_auth") === "ok";
+
+  if (!isAuthed) {
+    return <Redirect to="/" />;
+  }
+
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
@@ -40,7 +50,9 @@ function AppLayout() {
         <div className="flex flex-col flex-1">
           <header className="flex items-center justify-between p-4 border-b bg-background">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <h2 className="text-sm font-medium text-muted-foreground">FerdAir Manager</h2>
+            <h2 className="text-sm font-medium text-muted-foreground">
+              FerdAir Manager
+            </h2>
           </header>
           <main className="flex-1 overflow-auto p-6">
             <div className="max-w-7xl mx-auto">
