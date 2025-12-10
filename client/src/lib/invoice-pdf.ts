@@ -27,7 +27,9 @@ interface DocumentPayload {
   billToName: string;
   billToAddress: string;
   title?: string;
-  description: string;
+  description?: string;
+  secondaryTitle?: string;
+  secondaryDescription?: string;
   totalAmount: number;
   laborAmount?: number;
   includeRequiredStatement?: boolean;
@@ -77,7 +79,7 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
   const laborAmountBlock =
     payload.laborAmount !== undefined
       ? `<div style="display: flex; justify-content: space-between; font-size: 16px; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
-          <span style="font-weight: 700;">Labor Cost</span>
+          <span style="font-weight: 700;">Labor/Materials</span>
           <span>$${formatCurrency(payload.laborAmount)}</span>
         </div>`
       : "";
@@ -93,6 +95,20 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
 
   const titleBlock = payload.title
     ? `<div style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">${payload.title}</div>`
+    : "";
+
+  const descriptionBlock = payload.description
+    ? `<div style="margin-bottom: 16px;">
+        ${titleBlock}
+        <div style="font-size: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
+      </div>`
+    : "";
+
+  const secondaryBlock = payload.secondaryDescription
+    ? `<div style="margin-bottom: 16px;">
+        ${payload.secondaryTitle ? `<div style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">${payload.secondaryTitle}</div>` : ""}
+        <div style="font-size: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.secondaryDescription}</div>
+      </div>`
     : "";
 
   const signatureBlock = `
@@ -122,10 +138,8 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
         <div style="font-size: 16px; line-height: 1.8; white-space: pre-wrap;">${payload.billToName}<br/>${payload.billToAddress || ""}</div>
       </div>
 
-      <div style="margin-bottom: 16px;">
-        ${titleBlock}
-        <div style="font-size: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
-      </div>
+      ${descriptionBlock}
+      ${secondaryBlock}
 
       ${totalsBlock}
 
@@ -205,9 +219,11 @@ export function createInvoiceHTML(
     date: invoice.date,
     billToName: customer?.name || invoice.customerName || "",
     billToAddress: customer?.address || "",
-    title: "Work Performed",
+    title: "Work to be Performed",
     description:
       invoice.workPerformed || (invoice as any).work_performed || invoice.description || "",
+    secondaryTitle: "Description of Work Performed",
+    secondaryDescription: invoice.description || "",
     totalAmount: laborAmount,
     laborAmount,
     includeRequiredStatement: false,
