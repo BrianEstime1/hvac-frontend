@@ -214,7 +214,7 @@ export default function Invoices() {
                   <TableRow>
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Labor Cost</TableHead>
+                    <TableHead>Labor/Materials</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -384,7 +384,7 @@ export default function Invoices() {
                 name="workPerformed"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Work Performed</FormLabel>
+                    <FormLabel>Work to be Performed</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="AC repair, maintenance, installation..."
@@ -398,18 +398,15 @@ export default function Invoices() {
               />
               <FormField
                 control={form.control}
-                name="labor_cost"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Labor Cost</FormLabel>
+                    <FormLabel>Description of Work Performed</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
+                      <Textarea
+                        placeholder="Detailed description of the completed work..."
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                        data-testid="input-invoice-labor-cost"
+                        data-testid="input-invoice-description"
                       />
                     </FormControl>
                     <FormMessage />
@@ -418,15 +415,18 @@ export default function Invoices() {
               />
               <FormField
                 control={form.control}
-                name="description"
+                name="labor_cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Notes (Optional)</FormLabel>
+                    <FormLabel>Labor/Materials</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Any additional notes or comments..."
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
                         {...field}
-                        data-testid="input-invoice-description"
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        data-testid="input-invoice-labor-cost"
                       />
                     </FormControl>
                     <FormMessage />
