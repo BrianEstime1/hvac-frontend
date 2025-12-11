@@ -221,13 +221,10 @@ export function createInvoiceHTML(
     billToAddress: customer?.address || "",
     title: "Work to be Performed",
     description:
-      invoice.workPerformed || (invoice as any).work_performed || invoice.description || "",
+      invoice.workPerformed || (invoice as any).work_performed || "",
     secondaryTitle: "Description of Work Performed",
     secondaryDescription:
-      invoice.descriptionOfWorkPerformed ||
-      (invoice as any).description_of_work_performed ||
-      invoice.description ||
-      "",
+      invoice.description || (invoice as any).description || "",
     totalAmount: laborAmount,
     laborAmount,
     includeRequiredStatement: false,
