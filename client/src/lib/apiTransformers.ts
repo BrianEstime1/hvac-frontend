@@ -25,13 +25,22 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     invoiceNumber: apiInvoice.invoice_number,
     date: apiInvoice.date,
     technician: apiInvoice.technician,
-    workPerformed: apiInvoice.work_performed,
+    // Support both snake_case and camelCase fields from different backends
+    workPerformed:
+      apiInvoice.work_performed ||
+      apiInvoice.workPerformed ||
+      apiInvoice.work_description ||
+      "",
     labor_cost: laborCost,
     materials_cost: apiInvoice.materials_cost,
     subtotal,
     tax: apiInvoice.tax,
     total,
-    description: apiInvoice.description,
+    description:
+      apiInvoice.description ||
+      apiInvoice.work_description ||
+      apiInvoice.workPerformed ||
+      "",
     status: apiInvoice.status,
   };
 }
