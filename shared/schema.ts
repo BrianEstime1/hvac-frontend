@@ -55,6 +55,7 @@ export const invoiceSchema = z.object({
   date: z.string(),
   technician: z.string().optional(),
   workPerformed: z.string().optional(),
+  descriptionOfWorkPerformed: z.string().optional(),
   labor_cost: z.number(),
   materials_cost: z.number().optional(),
   subtotal: z.number().optional(),

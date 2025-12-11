@@ -89,6 +89,7 @@ export default function Invoices() {
         work_performed: data.workPerformed || "Service performed",
         labor_cost: data.labor_cost,
         description: data.description || "",
+        description_of_work_performed: data.description || "",
       };
       
       return apiRequest("POST", "/api/invoices", backendData);
