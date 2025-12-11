@@ -17,6 +17,13 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     apiInvoice.labor_cost ?? apiInvoice.subtotal ?? apiInvoice.total ?? 0;
   const subtotal = apiInvoice.subtotal ?? laborCost;
   const total = apiInvoice.total ?? subtotal;
+  const descriptionOfWorkPerformed =
+    apiInvoice.description_of_work_performed ||
+    apiInvoice.descriptionOfWorkPerformed ||
+    apiInvoice.description ||
+    apiInvoice.work_description ||
+    apiInvoice.workPerformed ||
+    "";
 
   return {
     id: apiInvoice.id,
@@ -36,11 +43,8 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     subtotal,
     tax: apiInvoice.tax,
     total,
-    description:
-      apiInvoice.description ||
-      apiInvoice.work_description ||
-      apiInvoice.workPerformed ||
-      "",
+    description: apiInvoice.description || descriptionOfWorkPerformed,
+    descriptionOfWorkPerformed,
     status: apiInvoice.status,
   };
 }

@@ -98,16 +98,16 @@ function buildDocumentHTML(type: DocumentType, payload: DocumentPayload) {
     : "";
 
   const descriptionBlock = payload.description
-    ? `<div style="margin-bottom: 16px;">
+    ? `<div style="margin-bottom: 12px;">
         ${titleBlock}
-        <div style="font-size: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
+        <div style="font-size: 16px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.description}</div>
       </div>`
     : "";
 
   const secondaryBlock = payload.secondaryDescription
-    ? `<div style="margin-bottom: 16px;">
+    ? `<div style="margin-bottom: 12px;">
         ${payload.secondaryTitle ? `<div style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">${payload.secondaryTitle}</div>` : ""}
-        <div style="font-size: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.secondaryDescription}</div>
+        <div style="font-size: 16px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; white-space: pre-wrap;">${payload.secondaryDescription}</div>
       </div>`
     : "";
 
@@ -223,7 +223,11 @@ export function createInvoiceHTML(
     description:
       invoice.workPerformed || (invoice as any).work_performed || invoice.description || "",
     secondaryTitle: "Description of Work Performed",
-    secondaryDescription: invoice.description || "",
+    secondaryDescription:
+      invoice.descriptionOfWorkPerformed ||
+      (invoice as any).description_of_work_performed ||
+      invoice.description ||
+      "",
     totalAmount: laborAmount,
     laborAmount,
     includeRequiredStatement: false,

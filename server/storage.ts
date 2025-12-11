@@ -183,6 +183,7 @@ export class MemStorage implements IStorage {
         total: 450.0,
         workPerformed: "AC maintenance and filter replacement",
         description: "Annual tune-up and filter change",
+        descriptionOfWorkPerformed: "Annual tune-up and filter change",
         status: "paid",
       },
       {
@@ -195,6 +196,7 @@ export class MemStorage implements IStorage {
         total: 275.5,
         workPerformed: "Furnace repair",
         description: "Replaced igniter and tested system",
+        descriptionOfWorkPerformed: "Replaced igniter and tested system",
         status: "sent",
       },
       {
@@ -207,6 +209,7 @@ export class MemStorage implements IStorage {
         total: 325.0,
         workPerformed: "Duct cleaning and inspection",
         description: "Cleaned ducts and sealed minor leaks",
+        descriptionOfWorkPerformed: "Cleaned ducts and sealed minor leaks",
         status: "draft",
       },
     ];
@@ -326,6 +329,8 @@ export class MemStorage implements IStorage {
       invoiceNumber,
       customerName: providedCustomerName || customer?.name,
       status: "draft",
+      descriptionOfWorkPerformed:
+        invoice.descriptionOfWorkPerformed || invoice.description,
     };
     this.invoices.set(id, newInvoice);
     return newInvoice;
