@@ -230,6 +230,7 @@ export function createInvoiceHTML(
     includeRequiredStatement: false,
     requiredStatement: "",
     paymentTerms: undefined,
+    signatureImage: invoice.customer_signature,
   };
 
   return buildDocumentHTML("invoice", payload);
