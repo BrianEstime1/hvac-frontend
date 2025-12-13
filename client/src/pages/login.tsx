@@ -10,11 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package } from "lucide-react";
-
-// Single shared access code for the app
-const APP_PASSWORD =
-  import.meta.env.VITE_APP_PASSWORD || "";
+import { setToken, isAuthenticated } from "@/lib/auth";
+import { api } from "@/lib/queryClient";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -23,22 +20,29 @@ export default function Login() {
 
   // If already "logged in", skip the login screen
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const authed = localStorage.getItem("ferdair_auth") === "ok";
-      if (authed) {
-        setLocation("/dashboard");
-      }
+    if (isAuthenticated()) {
+      setLocation("/dashboard");
     }
   }, [setLocation]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (password === APP_PASSWORD) {
-      localStorage.setItem("ferdair_auth", "ok");
+    try {
+      const response = await api.post("/api/auth/login", { password });
+      const { token, expiresIn } = response.data as {
+        token?: string;
+        expiresIn?: number;
+      };
+
+      if (!token) {
+        throw new Error("No token received from server");
+      }
+
+      setToken(token, expiresIn);
       setError("");
       setLocation("/dashboard");
-    } else {
+    } catch (err) {
       setError("Incorrect password. Try again.");
     }
   };

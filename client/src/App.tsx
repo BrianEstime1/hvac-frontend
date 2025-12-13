@@ -13,6 +13,7 @@ import Invoices from "@/pages/invoices";
 import Quotes from "@/pages/quotes";
 import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
+import { isAuthenticated } from "@/lib/auth";
 
 function Router() {
   return (
@@ -33,11 +34,7 @@ function AppLayout() {
     "--sidebar-width-icon": "3rem",
   };
 
-  // Simple front-end auth check:
-  // if there's no flag in localStorage, send them back to "/"
-  const isAuthed =
-    typeof window !== "undefined" &&
-    localStorage.getItem("ferdair_auth") === "ok";
+  const isAuthed = isAuthenticated();
 
   if (!isAuthed) {
     return <Redirect to="/" />;

@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
+import { clearToken, getToken } from "@/lib/auth";
 import {
   transformAppointmentFromAPI,
   transformInvoiceFromAPI,
@@ -20,6 +21,31 @@ export const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+api.interceptors.request.use((config) => {
+  const token = getToken();
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      clearToken();
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Universal API request wrapper
 export async function apiRequest(
