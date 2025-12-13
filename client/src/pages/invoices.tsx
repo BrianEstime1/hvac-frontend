@@ -124,7 +124,7 @@ export default function Invoices() {
   const signatureMutation = useMutation({
     mutationFn: ({ invoiceId, signature }: { invoiceId: number; signature: string }) =>
       apiRequest("POST", `/api/invoices/${invoiceId}/signature`, {
-        customer_signature: signature,
+        signature,
         signature_date: new Date().toISOString(),
         authorization_status: "authorized",
       }),
