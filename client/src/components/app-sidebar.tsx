@@ -1,5 +1,15 @@
-import { Home, Users, Calendar, Package, FileText, QuoteIcon } from "lucide-react";
+import {
+  Home,
+  Users,
+  Calendar,
+  Package,
+  FileText,
+  QuoteIcon,
+  LogOut,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { clearToken } from "@/lib/auth";
 import {
   Sidebar,
   SidebarContent,
@@ -46,7 +56,12 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  const handleLogout = () => {
+    clearToken();
+    setLocation("/");
+  };
 
   return (
     <Sidebar>
@@ -78,6 +93,24 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={handleLogout}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
