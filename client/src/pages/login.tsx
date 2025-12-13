@@ -14,7 +14,7 @@ import { Package } from "lucide-react";
 
 // Single shared access code for the app
 const APP_PASSWORD =
-  import.meta.env.VITE_APP_PASSWORD || "ferdair";
+  import.meta.env.VITE_APP_PASSWORD || "";
 
 export default function Login() {
   const [, setLocation] = useLocation();
