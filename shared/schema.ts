@@ -63,6 +63,9 @@ export const invoiceSchema = z.object({
   total: z.number().optional(),
   description: z.string().optional(),
   status: z.enum(["draft", "sent", "paid"]).optional(),
+  customer_signature: z.string().optional(),
+  signature_date: z.string().optional(),
+  authorization_status: z.string().optional(),
 });
 
 export const insertInvoiceSchema = invoiceSchema.omit({ id: true, customerName: true });

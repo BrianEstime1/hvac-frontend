@@ -44,10 +44,14 @@ import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { generateInvoicePDF, createInvoiceHTML } from "@/lib/invoice-pdf";
+import { SignaturePad } from "@/components/SignaturePad";
 
 export default function Invoices() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
+  const [authorizationInvoice, setAuthorizationInvoice] = useState<Invoice | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
@@ -117,6 +121,26 @@ export default function Invoices() {
     },
   });
 
+  const signatureMutation = useMutation({
+    mutationFn: ({ invoiceId, signature }: { invoiceId: number; signature: string }) =>
+      apiRequest("POST", `/api/invoices/${invoiceId}/signature`, {
+        customer_signature: signature,
+        signature_date: new Date().toISOString(),
+        authorization_status: "authorized",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setAuthorizationInvoice(null);
+      toast({ description: "Signature saved successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to save signature",
+      });
+    },
+  });
+
   const handleOpenAddDialog = () => {
     form.reset();
     setIsAddDialogOpen(true);
@@ -130,6 +154,15 @@ export default function Invoices() {
     if (deletingInvoice) {
       deleteMutation.mutate(deletingInvoice.id);
     }
+  };
+
+  const handleSaveSignature = (signature: string) => {
+    if (!authorizationInvoice) return;
+
+    signatureMutation.mutate({
+      invoiceId: authorizationInvoice.id,
+      signature,
+    });
   };
 
   const handleDownloadPDF = async (invoice: Invoice) => {
@@ -247,6 +280,14 @@ export default function Invoices() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setAuthorizationInvoice(invoice)}
+                            data-testid={`button-authorize-${invoice.id}`}
+                          >
+                            Get Customer Authorization
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -482,6 +523,35 @@ export default function Invoices() {
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Authorization Dialog */}
+      <Dialog
+        open={!!authorizationInvoice}
+        onOpenChange={(open) => {
+          if (!open) setAuthorizationInvoice(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Customer Authorization</DialogTitle>
+            <DialogDescription>
+              Obtain a customer signature to authorize work on this invoice.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {authorizationInvoice
+                ? `Invoice #${authorizationInvoice.invoiceNumber || authorizationInvoice.id}`
+                : "Select an invoice to capture a signature."}
+            </div>
+            <SignaturePad
+              onSave={handleSaveSignature}
+              isSaving={signatureMutation.isPending}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
