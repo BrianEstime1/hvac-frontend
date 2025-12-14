@@ -125,7 +125,7 @@ export default function Invoices() {
     mutationFn: ({ invoiceId, signature }: { invoiceId: number; signature: string }) =>
       apiRequest("POST", `/api/invoices/${invoiceId}/signature`, {
         signature: signature,
-      })
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       setAuthorizationInvoice(null);
