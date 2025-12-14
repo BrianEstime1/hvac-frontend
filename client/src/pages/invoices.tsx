@@ -139,9 +139,7 @@ export default function Invoices() {
     },
   });
 
-  const handleOpenAddDialog = () => {
-    console.log("Invoice data:", invoice);
-    console.log("Customer signature:", invoice.customer_signature) 
+  const handleOpenAddDialog = () => { 
     form.reset();
     setIsAddDialogOpen(true);
   };
@@ -165,34 +163,44 @@ export default function Invoices() {
     });
   };
 
-  const handleDownloadPDF = async (invoice: Invoice) => {
-    try {
-      const customer = customers?.find((c) => c.id === invoice.customerId);
-      
-      // Create a temporary container for PDF generation
-      const container = document.createElement("div");
-      container.id = `invoice-content-${invoice.id}`;
-      container.innerHTML = createInvoiceHTML(invoice, customer);
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
-      document.body.appendChild(container);
+const handleDownloadPDF = async (invoice: Invoice) => {
+  try {
+    // Fetch fresh invoice data to ensure the latest signature
+    const response = await apiRequest("GET", `/api/invoices/${invoice.id}`);
+    const freshInvoice = response as any;
+    
+    // Merge fresh data with existing invoice data
+    const invoiceWithSignature = {
+      ...invoice,
+      customer_signature: freshInvoice.customer_signature || invoice.customer_signature,
+    };
+    
+    const customer = customers?.find((c) => c.id === invoice.customerId);
+    
+    // Create a temporary container for PDF generation
+    const container = document.createElement("div");
+    container.id = `invoice-content-${invoice.id}`;
+    container.innerHTML = createInvoiceHTML(invoiceWithSignature, customer);
+    container.style.position = "absolute";
+    container.style.left = "-9999px";
+    document.body.appendChild(container);
 
-      await generateInvoicePDF(
-        invoice,
-        customer,
-        `Invoice-${invoice.id}-${invoice.customerName}`
-      );
+    await generateInvoicePDF(
+      invoiceWithSignature,
+      customer,
+      `Invoice-${invoice.id}-${invoice.customerName}`
+    );
 
-      document.body.removeChild(container);
-      toast({ description: "Invoice downloaded successfully" });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast({
-        description: "Failed to download invoice",
-        variant: "destructive",
-      });
-    }
-  };
+    document.body.removeChild(container);
+    toast({ description: "Invoice downloaded successfully" });
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    toast({
+      description: "Failed to download invoice",
+      variant: "destructive",
+    });
+  }
+};
 
   const filteredInvoices = invoices?.filter((invoice) =>
     invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
