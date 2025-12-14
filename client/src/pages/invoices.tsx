@@ -140,6 +140,8 @@ export default function Invoices() {
   });
 
   const handleOpenAddDialog = () => {
+    console.log("Invoice data:", invoice);
+    console.log("Customer signature:", invoice.customer_signature) 
     form.reset();
     setIsAddDialogOpen(true);
   };
