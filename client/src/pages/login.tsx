@@ -53,7 +53,7 @@ export default function Login() {
         <CardHeader className="space-y-6">
           <div className="flex justify-center">
             <img
-              src="/ferdair-logo.jpg"
+              src="/ferdair_professional_logo.png"
               alt="FerdAir Logo"
               className="h-20 w-auto object-contain"
             />
