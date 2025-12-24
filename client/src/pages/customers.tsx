@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
@@ -29,21 +30,47 @@ import {
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
-import { insertCustomerSchema, type Customer, type InsertCustomer } from "@shared/schema";
+import { ArrowLeft, Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { insertCustomerSchema, type Customer, type InsertCustomer, type Invoice } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+type CustomerPhoto = {
+  id: number;
+  photo_data: string;
+  caption?: string | null;
+  invoiceId?: number | null;
+  invoiceNumber?: string | null;
+};
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<CustomerPhoto | null>(null);
   const { toast } = useToast();
 
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const { data: invoices = [] } = useQuery<Invoice[]>({
+    queryKey: ["/api/invoices"],
+  });
+
+  const { data: customerPhotos = [], isLoading: photosLoading } = useQuery<
+    CustomerPhoto[]
+  >({
+    queryKey: ["customer-photos", selectedCustomer?.id],
+    enabled: !!selectedCustomer,
+    queryFn: async () => {
+      if (!selectedCustomer) return [];
+      return apiRequest("GET", `/api/customers/${selectedCustomer.id}/photos`);
+    },
   });
 
   const form = useForm<InsertCustomer>({
@@ -70,9 +97,12 @@ export default function Customers() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: InsertCustomer }) =>
       apiRequest("PUT", `/api/customers/${id}`, data),
-    onSuccess: () => {
+    onSuccess: (_, { id, data }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       setEditingCustomer(null);
+      setSelectedCustomer((current) =>
+        current?.id === id ? { ...current, ...data } : current
+      );
       form.reset();
       toast({ description: "Customer updated successfully" });
     },
@@ -89,6 +119,8 @@ export default function Customers() {
   });
 
   const normalized = searchTerm.toLowerCase();
+  const formatCurrency = (value: number) =>
+    Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
   const filteredCustomers = (customers ?? []).filter((customer) => {
     const name = customer.name?.toLowerCase() ?? "";
@@ -101,8 +133,12 @@ export default function Customers() {
       email.includes(normalized) ||
       phone.includes(normalized) ||
       address.includes(normalized)
-  );
-});
+    );
+  });
+
+  const customerInvoices = selectedCustomer
+    ? invoices.filter((invoice) => invoice.customerId === selectedCustomer.id)
+    : [];
 
   const handleOpenAddDialog = () => {
     form.reset();
@@ -132,6 +168,204 @@ export default function Customers() {
       deleteMutation.mutate(deletingCustomer.id);
     }
   };
+
+  if (selectedCustomer) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedCustomer(null)}
+              className="px-0 text-muted-foreground"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Customers
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">{selectedCustomer.name}</h1>
+            <p className="text-sm text-muted-foreground">
+              Customer detail view
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleOpenEditDialog(selectedCustomer)}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Customer
+            </Button>
+          </div>
+        </div>
+
+        <Tabs defaultValue="info" className="space-y-4">
+          <TabsList className="flex w-full flex-wrap justify-start">
+            <TabsTrigger value="info">Info</TabsTrigger>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="photos">Photos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact information</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p className="text-sm text-foreground">{selectedCustomer.email || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                  <p className="text-sm text-foreground">{selectedCustomer.phone || "—"}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">Address</p>
+                  <p className="text-sm text-foreground">{selectedCustomer.address || "—"}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoices</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {customerInvoices.length ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customerInvoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">
+                            {invoice.invoiceNumber
+                              ? `#${invoice.invoiceNumber}`
+                              : `#${invoice.id}`}
+                          </TableCell>
+                          <TableCell>{invoice.date}</TableCell>
+                          <TableCell>
+                            {invoice.status ? (
+                              <Badge variant="outline">{invoice.status}</Badge>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {typeof invoice.total === "number"
+                              ? `$${formatCurrency(invoice.total)}`
+                              : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                    No invoices for this customer yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <Card>
+              <CardHeader>
+                <CardTitle>Photos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {photosLoading ? (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <Skeleton key={index} className="h-48 w-full" />
+                    ))}
+                  </div>
+                ) : customerPhotos.length ? (
+                  <>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                      {customerPhotos.map((photo) => (
+                        <div
+                          key={photo.id}
+                          className="overflow-hidden rounded-lg border bg-card shadow-sm"
+                        >
+                          <button
+                            type="button"
+                            className="block w-full"
+                            onClick={() => setSelectedPhoto(photo)}
+                            aria-label={
+                              photo.caption ? `View ${photo.caption}` : "View photo"
+                            }
+                          >
+                            <img
+                              src={photo.photo_data}
+                              alt={photo.caption || "Customer photo"}
+                              className="h-36 w-full object-cover sm:h-40"
+                              loading="lazy"
+                            />
+                          </button>
+                          <div className="space-y-2 p-3">
+                            <p className="text-xs text-muted-foreground">
+                              {photo.caption || "No caption"}
+                            </p>
+                            <p className="text-xs font-medium text-foreground">
+                              Invoice{" "}
+                              {photo.invoiceNumber
+                                ? `#${photo.invoiceNumber}`
+                                : photo.invoiceId
+                                  ? `#${photo.invoiceId}`
+                                  : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Dialog
+                      open={!!selectedPhoto}
+                      onOpenChange={(open) => {
+                        if (!open) setSelectedPhoto(null);
+                      }}
+                    >
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {selectedPhoto?.caption || "Customer photo"}
+                          </DialogTitle>
+                        </DialogHeader>
+                        {selectedPhoto && (
+                          <div className="flex justify-center">
+                            <img
+                              src={selectedPhoto.photo_data}
+                              alt={selectedPhoto.caption || "Customer photo"}
+                              className="max-h-[70vh] w-full rounded-md object-contain"
+                            />
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                    No photos yet. Add photos from the Invoices page.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -180,7 +414,12 @@ export default function Customers() {
               <TableBody>
                 {filteredCustomers && filteredCustomers.length > 0 ? (
                   filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
+                    <TableRow
+                      key={customer.id}
+                      data-testid={`row-customer-${customer.id}`}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedCustomer(customer)}
+                    >
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>{customer.email}</TableCell>
                       <TableCell>{customer.phone}</TableCell>
@@ -190,7 +429,10 @@ export default function Customers() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleOpenEditDialog(customer)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenEditDialog(customer);
+                            }}
                             data-testid={`button-edit-${customer.id}`}
                           >
                             <Pencil className="w-4 h-4" />
@@ -198,7 +440,10 @@ export default function Customers() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setDeletingCustomer(customer)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setDeletingCustomer(customer);
+                            }}
                             data-testid={`button-delete-${customer.id}`}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
