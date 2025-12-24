@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Download } from "lucide-react";
+import { Plus, Trash2, Download, Image as ImageIcon, Upload } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { generateInvoicePDF, createInvoiceHTML } from "@/lib/invoice-pdf";
 import { SignaturePad } from "@/components/SignaturePad";
+import { PhotoGallery, type InvoicePhoto } from "@/components/PhotoGallery";
 
 export default function Invoices() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -52,6 +53,9 @@ export default function Invoices() {
   const [authorizationInvoice, setAuthorizationInvoice] = useState<Invoice | null>(
     null
   );
+  const [photoInvoice, setPhotoInvoice] = useState<Invoice | null>(null);
+  const [photoCaption, setPhotoCaption] = useState("");
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
@@ -64,6 +68,17 @@ export default function Invoices() {
 
   const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const photosQueryKey = photoInvoice
+    ? [`/api/invoices/${photoInvoice.id}/photos`]
+    : ["invoice-photos"];
+
+  const { data: invoicePhotos = [], isLoading: photosLoading } = useQuery<
+    InvoicePhoto[]
+  >({
+    queryKey: photosQueryKey,
+    enabled: !!photoInvoice,
   });
 
   const form = useForm<InsertInvoice>({
@@ -139,6 +154,62 @@ export default function Invoices() {
     },
   });
 
+  const uploadPhotoMutation = useMutation({
+    mutationFn: ({
+      invoiceId,
+      photoData,
+      caption,
+    }: {
+      invoiceId: number;
+      photoData: string;
+      caption?: string;
+    }) =>
+      apiRequest("POST", `/api/invoices/${invoiceId}/photos`, {
+        photo_data: photoData,
+        caption,
+      }),
+    onSuccess: () => {
+      if (photoInvoice) {
+        queryClient.invalidateQueries({
+          queryKey: [`/api/invoices/${photoInvoice.id}/photos`],
+        });
+      }
+      setSelectedPhotoFile(null);
+      setPhotoCaption("");
+      toast({ description: "Photo uploaded successfully." });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to upload photo.",
+      });
+    },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: ({
+      invoiceId,
+      photoId,
+    }: {
+      invoiceId: number;
+      photoId: number;
+    }) => apiRequest("DELETE", `/api/invoices/${invoiceId}/photos/${photoId}`),
+    onSuccess: () => {
+      if (photoInvoice) {
+        queryClient.invalidateQueries({
+          queryKey: [`/api/invoices/${photoInvoice.id}/photos`],
+        });
+      }
+      toast({ description: "Photo deleted successfully." });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to delete photo.",
+      });
+    },
+  });
+
   const handleOpenAddDialog = () => { 
     form.reset();
     setIsAddDialogOpen(true);
@@ -161,6 +232,37 @@ export default function Invoices() {
       invoiceId: authorizationInvoice.id,
       signature,
     });
+  };
+
+  const handlePhotoSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSelectedPhotoFile(file);
+  };
+
+  const convertFileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("Failed to read file."));
+      reader.readAsDataURL(file);
+    });
+
+  const handleUploadPhoto = async () => {
+    if (!photoInvoice || !selectedPhotoFile) return;
+    try {
+      const base64Data = await convertFileToBase64(selectedPhotoFile);
+      uploadPhotoMutation.mutate({
+        invoiceId: photoInvoice.id,
+        photoData: base64Data,
+        caption: photoCaption.trim() || undefined,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to read the selected photo.",
+      });
+    }
   };
 
 const handleDownloadPDF = async (invoice: Invoice) => {
@@ -287,7 +389,20 @@ const handleDownloadPDF = async (invoice: Invoice) => {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setPhotoInvoice(invoice);
+                              setSelectedPhotoFile(null);
+                              setPhotoCaption("");
+                            }}
+                            data-testid={`button-photos-${invoice.id}`}
+                          >
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            Photos
+                          </Button>
                           <Button
                             variant="secondary"
                             size="sm"
@@ -559,6 +674,94 @@ const handleDownloadPDF = async (invoice: Invoice) => {
               onSave={handleSaveSignature}
               isSaving={signatureMutation.isPending}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Photos Dialog */}
+      <Dialog
+        open={!!photoInvoice}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPhotoInvoice(null);
+            setSelectedPhotoFile(null);
+            setPhotoCaption("");
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Invoice Photos</DialogTitle>
+            <DialogDescription>
+              {photoInvoice
+                ? `Upload and manage photos for invoice #${
+                    photoInvoice.invoiceNumber || photoInvoice.id
+                  }.`
+                : "Select an invoice to view photos."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Photo file
+                  </label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelection}
+                    className="min-h-11"
+                  />
+                  {selectedPhotoFile && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {selectedPhotoFile.name}
+                    </p>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Caption
+                  </label>
+                  <Input
+                    placeholder="Add a caption for context"
+                    value={photoCaption}
+                    onChange={(event) => setPhotoCaption(event.target.value)}
+                    className="min-h-11"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleUploadPhoto}
+                  disabled={!selectedPhotoFile || uploadPhotoMutation.isPending}
+                  className="min-h-11"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploadPhotoMutation.isPending ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+            </div>
+
+            {photosLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((item) => (
+                  <Skeleton key={item} className="h-24 w-full" />
+                ))}
+              </div>
+            ) : (
+              <PhotoGallery
+                photos={invoicePhotos}
+                deletingPhotoId={deletePhotoMutation.variables?.photoId}
+                onDelete={(photo) => {
+                  if (!photoInvoice) return;
+                  deletePhotoMutation.mutate({
+                    invoiceId: photoInvoice.id,
+                    photoId: photo.id,
+                  });
+                }}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
