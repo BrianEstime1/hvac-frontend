@@ -104,6 +104,10 @@ export const getQueryFn: <T>(options: {
         const list = normalizeList(raw);
         transformedData = list.map(transformAppointmentFromAPI);
 
+      } else if (path.includes("/photos")) {
+        // Photos endpoints return array directly, no transformation needed
+        transformedData = Array.isArray(raw) ? raw : [];
+
       } else if (path.includes("/api/invoices")) {
         const list = normalizeList(raw);
         transformedData = list.map(transformInvoiceFromAPI);
