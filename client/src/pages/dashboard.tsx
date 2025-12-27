@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, AlertTriangle } from "lucide-react";
+import { Users, Calendar, AlertTriangle, DollarSign } from "lucide-react";
 import type { DashboardStats } from "@shared/schema";
 
 export default function Dashboard() {
@@ -17,7 +17,7 @@ export default function Dashboard() {
         <p className="text-sm text-muted-foreground">Overview of your HVAC business</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Total Customers Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -64,6 +64,26 @@ export default function Dashboard() {
             ) : (
               <div className="text-3xl font-bold text-destructive" data-testid="text-lowstock-count">
                 {stats?.lowStockItems?.length ?? 0}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Unpaid Invoices Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Unpaid Invoices</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-unpaid-invoices">
+                ${(stats?.unpaidTotal ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({stats?.unpaidCount ?? 0} invoices)
+                </span>
               </div>
             )}
           </CardContent>

@@ -66,6 +66,8 @@ export const invoiceSchema = z.object({
   customer_signature: z.string().optional(),
   signature_date: z.string().optional(),
   authorization_status: z.string().optional(),
+  paid_date: z.string().optional(),
+  payment_method: z.string().optional(),
 });
 
 export const insertInvoiceSchema = invoiceSchema.omit({ id: true, customerName: true });
@@ -103,4 +105,6 @@ export interface DashboardStats {
   totalCustomers: number;
   upcomingAppointments: number;
   lowStockItems: InventoryItem[];
+  unpaidTotal: number;
+  unpaidCount: number;
 }

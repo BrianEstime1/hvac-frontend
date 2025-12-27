@@ -37,7 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Download, Image as ImageIcon, Upload } from "lucide-react";
+import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,9 @@ export default function Invoices() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const { toast } = useToast();
 
   const formatCurrency = (value: number) =>
@@ -210,6 +213,34 @@ export default function Invoices() {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: ({
+      invoiceId,
+      status,
+      payment_method,
+    }: {
+      invoiceId: number;
+      status: string;
+      payment_method?: string;
+    }) =>
+      apiRequest("PATCH", `/api/invoices/${invoiceId}/status`, {
+        status,
+        payment_method,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setPaymentInvoice(null);
+      setSelectedPaymentMethod(null);
+      toast({ description: "Invoice status updated successfully." });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Failed to update invoice status.",
+      });
+    },
+  });
+
   const handleOpenAddDialog = () => { 
     form.reset();
     setIsAddDialogOpen(true);
@@ -304,22 +335,61 @@ const handleDownloadPDF = async (invoice: Invoice) => {
   }
 };
 
-  const filteredInvoices = invoices?.filter((invoice) =>
-    invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredInvoices = invoices?.filter((invoice) => {
+    const matchesSearch =
+      invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || invoice.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }) || [];
 
-  const getStatusVariant = (status?: string) => {
+  const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case "paid":
-        return "default";
+        return "default"; // green/success
       case "sent":
-        return "secondary";
+        return "secondary"; // orange
       case "draft":
-        return "outline";
+        return "outline"; // yellow/warning style
       default:
         return "secondary";
     }
+  };
+
+  const getStatusClassName = (status?: string) => {
+    switch (status) {
+      case "paid":
+        return "bg-green-100 text-green-800 border-green-200 hover:bg-green-100";
+      case "sent":
+        return "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100";
+      case "draft":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100";
+      default:
+        return "";
+    }
+  };
+
+  const handleMarkSent = (invoice: Invoice) => {
+    updateStatusMutation.mutate({
+      invoiceId: invoice.id,
+      status: "sent",
+    });
+  };
+
+  const handlePaymentMethodSelect = (method: string) => {
+    if (!paymentInvoice) return;
+    updateStatusMutation.mutate({
+      invoiceId: paymentInvoice.id,
+      status: "paid",
+      payment_method: method,
+    });
+  };
+
+  const formatPaidDate = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -337,13 +407,29 @@ const handleDownloadPDF = async (invoice: Invoice) => {
 
       <Card>
         <CardHeader>
-          <Input
-            placeholder="Search by customer or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs"
-            data-testid="input-search-invoices"
-          />
+          <div className="flex flex-wrap gap-4 items-center">
+            <Input
+              placeholder="Search by customer or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-xs"
+              data-testid="input-search-invoices"
+            />
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {invoicesLoading ? (
@@ -379,14 +465,47 @@ const handleDownloadPDF = async (invoice: Invoice) => {
                         {invoice.description}
                       </TableCell>
                       <TableCell>
-                        {invoice.status && (
-                          <Badge
-                            variant={getStatusVariant(invoice.status)}
-                            data-testid={`badge-status-${invoice.id}`}
-                          >
-                            {invoice.status}
-                          </Badge>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {invoice.status && (
+                            <Badge
+                              variant={getStatusVariant(invoice.status)}
+                              className={getStatusClassName(invoice.status)}
+                              data-testid={`badge-status-${invoice.id}`}
+                            >
+                              {invoice.status}
+                            </Badge>
+                          )}
+                          {invoice.status === "paid" && (
+                            <span className="text-xs text-muted-foreground">
+                              {invoice.payment_method && `${invoice.payment_method}`}
+                              {invoice.paid_date && ` - ${formatPaidDate(invoice.paid_date)}`}
+                            </span>
+                          )}
+                          {invoice.status === "draft" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMarkSent(invoice)}
+                              disabled={updateStatusMutation.isPending}
+                              data-testid={`button-mark-sent-${invoice.id}`}
+                            >
+                              <Send className="mr-1 h-3 w-3" />
+                              Mark Sent
+                            </Button>
+                          )}
+                          {invoice.status !== "paid" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setPaymentInvoice(invoice)}
+                              disabled={updateStatusMutation.isPending}
+                              data-testid={`button-mark-paid-${invoice.id}`}
+                            >
+                              <CreditCard className="mr-1 h-3 w-3" />
+                              Mark Paid
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-wrap gap-2 justify-end">
@@ -763,6 +882,58 @@ const handleDownloadPDF = async (invoice: Invoice) => {
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Method Dialog */}
+      <Dialog
+        open={!!paymentInvoice}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPaymentInvoice(null);
+            setSelectedPaymentMethod(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Payment Method</DialogTitle>
+            <DialogDescription>
+              {paymentInvoice
+                ? `How was invoice #${
+                    paymentInvoice.invoiceNumber || paymentInvoice.id
+                  } paid?`
+                : "Select an invoice to mark as paid."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-3 py-4">
+            {["Cash", "Zelle", "Check", "Credit Card", "Other"].map((method) => (
+              <Button
+                key={method}
+                variant="outline"
+                className="h-16 text-base"
+                onClick={() => handlePaymentMethodSelect(method)}
+                disabled={updateStatusMutation.isPending}
+                data-testid={`button-payment-${method.toLowerCase().replace(" ", "-")}`}
+              >
+                {method}
+              </Button>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPaymentInvoice(null);
+                setSelectedPaymentMethod(null);
+              }}
+              disabled={updateStatusMutation.isPending}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
