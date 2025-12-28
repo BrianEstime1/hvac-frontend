@@ -132,6 +132,8 @@ export const getQueryFn: <T>(options: {
           lowStockItems: Array.isArray(raw.low_stock_items)
             ? raw.low_stock_items.map(transformInventoryFromAPI)
             : [],
+          unpaidTotal: raw.unpaid_total || 0,
+          unpaidCount: raw.unpaid_count || 0,
         };
       }
 
