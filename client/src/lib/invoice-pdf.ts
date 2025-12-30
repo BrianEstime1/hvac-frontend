@@ -7,6 +7,7 @@ const BRAND_INFO = {
   services: "AIR CONDITIONING, HEATING & COOLING",
   tagline: "RESIDENTIAL & COMMERCIAL SERVICES",
   license: "LICENSED & INSURED — CAC1822074",
+  address: "451 Oleander Rd Lantana, FL 33462",
   phone: "Phone: 561-577-5327",
   email: "Email: ferde.estime@yahoo.com",
 };
@@ -50,6 +51,7 @@ const buildHeader = () => `
     <div style="font-size: 18px; font-weight: 700;">${BRAND_INFO.services}</div>
     <div style="font-size: 17px; font-weight: 600;">${BRAND_INFO.tagline}</div>
     <div style="font-size: 16px; margin-top: 6px;">${BRAND_INFO.license}</div>
+    <div style="font-size: 16px;">${BRAND_INFO.address}</div>
     <div style="font-size: 16px;">${BRAND_INFO.phone}</div>
     <div style="font-size: 16px;">${BRAND_INFO.email}</div>
   </div>
