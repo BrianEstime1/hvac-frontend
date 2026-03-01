@@ -148,7 +148,7 @@ export default function LandingPage() {
             transition: "all 0.6s ease" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563eb", display: "inline-block" }} />
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "#60a5fa",
-              letterSpacing: "0.08em", fontWeight: 600 }}>SERVING TAMPA BAY</span>
+              letterSpacing: "0.08em", fontWeight: 600 }}>SERVING FLORIDA</span>
           </div>
 
           <h1 style={{ fontFamily: "'Oswald', sans-serif", fontSize: "clamp(3rem, 7vw, 6.5rem)",
@@ -172,7 +172,7 @@ export default function LandingPage() {
             opacity: heroLoaded ? 1 : 0, transform: heroLoaded ? "translateY(0)" : "translateY(24px)",
             transition: "all 0.7s ease 0.3s" }}>
             <a href="/book" className="fa-btn-primary">BOOK A SERVICE →</a>
-            <a href="tel:+18135551234" className="fa-btn-outline">📞 Call Us Now</a>
+            <a href="tel:+5615775327" className="fa-btn-outline">📞 Call Us Now</a>
           </div>
 
           {/* stats */}
@@ -311,7 +311,7 @@ export default function LandingPage() {
               <a href="/book" className="fa-btn-primary" style={{ fontSize: "1.1rem", padding: "1.1rem 3rem",
                 boxShadow: "0 0 50px rgba(37,99,235,0.35)" }}>BOOK NOW →</a>
               <a href="tel:+18135551234" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
-                📞 (813) 555-1234
+                📞 (561) 577-5327
               </a>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function LandingPage() {
           alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
           <img src="/ferdair_professional_logo.png" alt="FerdAir" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "rgba(255,255,255,0.3)" }}>
-            © {new Date().getFullYear()} FerdAir HVAC LLC · Tampa Bay, FL · Licensed & Insured
+            © {new Date().getFullYear()} FerdAir HVAC LLC · Palm Beach, FL · Licensed & Insured
           </p>
           <a href="/book" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem",
             color: "#60a5fa", textDecoration: "none", fontWeight: 600 }}>Book Service →</a>
