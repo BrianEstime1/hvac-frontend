@@ -100,7 +100,9 @@ export default function LandingPage() {
         padding: "1rem 2rem", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <img src="/ferdair_professional_logo.png" alt="FerdAir" style={{ height: "36px", width: "auto", objectFit: "contain" }} />
+          <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.5rem", fontWeight: 700, letterSpacing: "0.06em", color: "#fff" }}>
+            FERD<span style={{ color: "#2563eb" }}>AIR</span>
+          </span>
         </div>
         <div className="nav-links" style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
           {[["Services", "#services"], ["About", "#about"], ["Contact", "#contact"]].map(([label, href]) => (
@@ -164,7 +166,7 @@ export default function LandingPage() {
             color: "rgba(255,255,255,0.6)", maxWidth: "480px", lineHeight: 1.7, marginBottom: "2.5rem",
             opacity: heroLoaded ? 1 : 0, transform: heroLoaded ? "translateY(0)" : "translateY(24px)",
             transition: "all 0.7s ease 0.2s" }}>
-            Licensed HVAC experts delivering fast, honest service across Florida.
+            Licensed HVAC experts delivering fast, honest service across Tampa Bay.
             AC installation, repair, maintenance — done right the first time.
           </p>
 
@@ -263,7 +265,7 @@ export default function LandingPage() {
               </h2>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", color: "rgba(255,255,255,0.55)",
                 lineHeight: 1.8, marginBottom: "2rem" }}>
-                We're a family-owned HVAC company based in Florida. Every job gets a licensed
+                We're a family-owned HVAC company based in Tampa Bay. Every job gets a licensed
                 technician, honest diagnostics, and a straightforward price — no commission-driven upselling.
               </p>
               <a href="/book" className="fa-btn-primary">GET A FREE QUOTE →</a>
@@ -310,7 +312,7 @@ export default function LandingPage() {
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <a href="/book" className="fa-btn-primary" style={{ fontSize: "1.1rem", padding: "1.1rem 3rem",
                 boxShadow: "0 0 50px rgba(37,99,235,0.35)" }}>BOOK NOW →</a>
-              <a href="tel:+5615775327" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
+              <a href="tel:+18135551234" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
                 📞 (561) 577-5327
               </a>
             </div>
@@ -322,7 +324,9 @@ export default function LandingPage() {
       <footer style={{ background: "#0a0f1c", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "2rem 2rem" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex",
           alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
-          <img src="/ferdair_professional_logo.png" alt="FerdAir" style={{ height: "28px", width: "auto", objectFit: "contain" }} />
+          <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.2rem", fontWeight: 700, letterSpacing: "0.06em", color: "#fff" }}>
+          FERD<span style={{ color: "#2563eb" }}>AIR</span>
+        </span>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "rgba(255,255,255,0.3)" }}>
             © {new Date().getFullYear()} FerdAir HVAC LLC · Palm Beach, FL · Licensed & Insured
           </p>
