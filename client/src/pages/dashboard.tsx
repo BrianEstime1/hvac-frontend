@@ -85,7 +85,7 @@ export default function Dashboard() {
       {/* Greeting */}
       <div>
         <p className="text-sm text-muted-foreground">Welcome,</p>
-        <h1 className="text-2xl font-bold text-foreground">FerdAir</h1>
+        <h1 className="text-2xl font-bold text-foreground">FERDAIR</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Here's your business overview</p>
       </div>
 
