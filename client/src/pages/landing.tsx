@@ -166,7 +166,7 @@ export default function LandingPage() {
             color: "rgba(255,255,255,0.6)", maxWidth: "480px", lineHeight: 1.7, marginBottom: "2.5rem",
             opacity: heroLoaded ? 1 : 0, transform: heroLoaded ? "translateY(0)" : "translateY(24px)",
             transition: "all 0.7s ease 0.2s" }}>
-            Licensed HVAC experts delivering fast, honest service across Tampa Bay.
+            Licensed HVAC experts delivering fast, honest service across Florida.
             AC installation, repair, maintenance — done right the first time.
           </p>
 
@@ -312,7 +312,7 @@ export default function LandingPage() {
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <a href="/book" className="fa-btn-primary" style={{ fontSize: "1.1rem", padding: "1.1rem 3rem",
                 boxShadow: "0 0 50px rgba(37,99,235,0.35)" }}>BOOK NOW →</a>
-              <a href="tel:+18135551234" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
+              <a href="tel:+5615775327" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
                 📞 (561) 577-5327
               </a>
             </div>
