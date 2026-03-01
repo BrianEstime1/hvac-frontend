@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://hvac-backend-latest.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://hvac-management-api.onrender.com";
 
 const SERVICE_TYPES = [
   "AC Repair",
