@@ -14,20 +14,17 @@ import Invoices from "@/pages/invoices";
 import Quotes from "@/pages/quotes";
 import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
+import BookingPortal from "@/pages/book";
 import { isAuthenticated } from "@/lib/auth";
-
 function AppLayout() {
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
-
   const isAuthed = isAuthenticated();
-
   if (!isAuthed) {
     return <Redirect to="/" />;
   }
-
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
@@ -35,7 +32,6 @@ function AppLayout() {
         <div className="hidden md:block">
           <AppSidebar />
         </div>
-
         <div className="flex flex-col flex-1 min-w-0">
           {/* Header */}
           <header className="flex items-center justify-between p-4 border-b bg-background">
@@ -55,7 +51,6 @@ function AppLayout() {
               FerdAir Manager
             </h2>
           </header>
-
           {/* Page content — extra bottom padding on mobile for nav bar */}
           <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6">
             <div className="max-w-7xl mx-auto">
@@ -74,7 +69,6 @@ function AppLayout() {
           </main>
         </div>
       </div>
-
       {/* Mobile bottom nav — only on mobile */}
       <div className="md:hidden">
         <MobileNav />
@@ -82,13 +76,13 @@ function AppLayout() {
     </SidebarProvider>
   );
 }
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Switch>
           <Route path="/" component={Login} />
+          <Route path="/book" component={BookingPortal} />
           <Route path="/:rest*">
             {() => <AppLayout />}
           </Route>
@@ -98,5 +92,4 @@ function App() {
     </QueryClientProvider>
   );
 }
-
 export default App;
