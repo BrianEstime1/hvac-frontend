@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,20 +83,17 @@ export default function BookingPortal() {
     form.service_type && form.preferred_date && form.preferred_time;
 
   return (
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet" />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-background sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          <img
-            src="/ferdair_professional_logo.png"
-            alt="FerdAir"
-            className="h-9 w-auto object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
           <div>
-            <div className="font-bold text-foreground text-base leading-tight">FerdAir</div>
+            <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--foreground)" }}>
+              FERD<span style={{ color: "#2563eb" }}>AIR</span>
+            </div>
             <div className="text-xs text-muted-foreground">Book a Service</div>
           </div>
         </div>
@@ -341,5 +339,6 @@ export default function BookingPortal() {
         )}
       </div>
     </div>
+    </>
   );
 }
