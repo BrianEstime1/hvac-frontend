@@ -63,11 +63,14 @@ export async function apiRequest(
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
-      throw new Error(
-        axiosError.response?.data as string ||
-          axiosError.message ||
-          "An error occurred"
-      );
+      const data = axiosError.response?.data as any;
+      // Backend returns { error: "..." } — extract the message properly
+      const message =
+        (typeof data === "object" && data !== null && (data.error || data.message)) ||
+        (typeof data === "string" && data) ||
+        axiosError.message ||
+        "An error occurred";
+      throw new Error(message);
     }
     throw error;
   }
