@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { MobileNav } from "@/components/mobile-nav";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Customers from "@/pages/customers";
@@ -14,19 +15,6 @@ import Quotes from "@/pages/quotes";
 import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
 import { isAuthenticated } from "@/lib/auth";
-
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Login} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/customers" component={Customers} />
-      <Route path="/appointments" component={Appointments} />
-      <Route path="/inventory" component={Inventory} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
 
 function AppLayout() {
   const style = {
@@ -43,15 +31,33 @@ function AppLayout() {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-col flex-1">
+        {/* Sidebar — hidden on mobile, visible on desktop */}
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
+
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Header */}
           <header className="flex items-center justify-between p-4 border-b bg-background">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            {/* Desktop: sidebar toggle */}
+            <div className="hidden md:block">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+            </div>
+            {/* Mobile: logo */}
+            <div className="md:hidden flex items-center gap-2">
+              <img
+                src="/ferdair_professional_logo.png"
+                alt="FerdAir"
+                className="h-8 w-auto object-contain"
+              />
+            </div>
             <h2 className="text-sm font-medium text-muted-foreground">
               FerdAir Manager
             </h2>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+
+          {/* Page content — extra bottom padding on mobile for nav bar */}
+          <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6">
             <div className="max-w-7xl mx-auto">
               <Switch>
                 <Route path="/dashboard" component={Dashboard} />
@@ -67,6 +73,11 @@ function AppLayout() {
             </div>
           </main>
         </div>
+      </div>
+
+      {/* Mobile bottom nav — only on mobile */}
+      <div className="md:hidden">
+        <MobileNav />
       </div>
     </SidebarProvider>
   );
