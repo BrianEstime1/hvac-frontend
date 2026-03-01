@@ -15,6 +15,7 @@ import Quotes from "@/pages/quotes";
 import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
 import BookingPortal from "@/pages/book";
+import LandingPage from "@/pages/landing";
 import { isAuthenticated } from "@/lib/auth";
 function AppLayout() {
   const style = {
@@ -23,7 +24,7 @@ function AppLayout() {
   };
   const isAuthed = isAuthenticated();
   if (!isAuthed) {
-    return <Redirect to="/" />;
+    return <Redirect to="/admin" />;
   }
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -81,7 +82,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Switch>
-          <Route path="/" component={Login} />
+          <Route path="/" component={LandingPage} />
+          <Route path="/admin" component={Login} />
           <Route path="/book" component={BookingPortal} />
           <Route path="/:rest*">
             {() => <AppLayout />}
