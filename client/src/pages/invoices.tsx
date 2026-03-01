@@ -2,7 +2,6 @@ import { useState, type ChangeEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -11,14 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -37,29 +28,56 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard } from "lucide-react";
+import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { generateInvoicePDF, createInvoiceHTML } from "@/lib/invoice-pdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import { PhotoGallery, type InvoicePhoto } from "@/components/PhotoGallery";
 
+const avatarColors = ["#0EA5E9", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444", "#3B82F6"];
+
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
+
+function getAvatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + hash * 31;
+  return avatarColors[Math.abs(hash) % avatarColors.length];
+}
+
+function StatusPill({ status }: { status?: string }) {
+  const map: Record<string, { bg: string; color: string; label: string }> = {
+    paid:    { bg: "#10B98115", color: "#10B981", label: "Paid" },
+    sent:    { bg: "#F59E0B15", color: "#F59E0B", label: "Sent" },
+    draft:   { bg: "#64748B15", color: "#64748B", label: "Draft" },
+    overdue: { bg: "#EF444415", color: "#EF4444", label: "Overdue" },
+  };
+  const s = map[status ?? "draft"] ?? map.draft;
+  return (
+    <span
+      className="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide"
+      style={{ background: s.bg, color: s.color }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
 export default function Invoices() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
-  const [authorizationInvoice, setAuthorizationInvoice] = useState<Invoice | null>(
-    null
-  );
+  const [authorizationInvoice, setAuthorizationInvoice] = useState<Invoice | null>(null);
   const [photoInvoice, setPhotoInvoice] = useState<Invoice | null>(null);
   const [photoCaption, setPhotoCaption] = useState("");
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [stripeLoading, setStripeLoading] = useState<number | null>(null);
   const { toast } = useToast();
 
   const formatCurrency = (value: number) =>
@@ -69,7 +87,7 @@ export default function Invoices() {
     queryKey: ["/api/invoices"],
   });
 
-  const { data: customers, isLoading: customersLoading } = useQuery<Customer[]>({
+  const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -77,9 +95,7 @@ export default function Invoices() {
     ? [`/api/invoices/${photoInvoice.id}/photos`]
     : ["invoice-photos"];
 
-  const { data: invoicePhotos = [], isLoading: photosLoading } = useQuery<
-    InvoicePhoto[]
-  >({
+  const { data: invoicePhotos = [], isLoading: photosLoading } = useQuery<InvoicePhoto[]>({
     queryKey: photosQueryKey,
     enabled: !!photoInvoice,
   });
@@ -88,7 +104,7 @@ export default function Invoices() {
     resolver: zodResolver(insertInvoiceSchema),
     defaultValues: {
       customerId: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split("T")[0],
       invoiceNumber: "",
       technician: "",
       workPerformed: "",
@@ -99,11 +115,8 @@ export default function Invoices() {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertInvoice) => {
-      // Auto-generate invoice number if not provided
       const invoiceNumber = data.invoiceNumber || `INV-${Date.now()}`;
-      
-      // Transform data to match backend expectations
-      const backendData = {
+      return apiRequest("POST", "/api/invoices", {
         customer_id: data.customerId,
         invoice_number: invoiceNumber,
         date: data.date,
@@ -111,10 +124,7 @@ export default function Invoices() {
         work_performed: data.workPerformed || "Service performed",
         labor_cost: data.labor_cost,
         description: data.description || "",
-        description_of_work_performed: data.description || "",
-      };
-      
-      return apiRequest("POST", "/api/invoices", backendData);
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
@@ -123,10 +133,7 @@ export default function Invoices() {
       toast({ description: "Invoice created successfully" });
     },
     onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        description: error.message || "Failed to create invoice",
-      });
+      toast({ variant: "destructive", description: error.message || "Failed to create invoice" });
     },
   });
 
@@ -141,240 +148,69 @@ export default function Invoices() {
 
   const signatureMutation = useMutation({
     mutationFn: ({ invoiceId, signature }: { invoiceId: number; signature: string }) =>
-      apiRequest("POST", `/api/invoices/${invoiceId}/signature`, {
-        signature: signature,
-      }),
+      apiRequest("POST", `/api/invoices/${invoiceId}/signature`, { signature }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       setAuthorizationInvoice(null);
       toast({ description: "Signature saved successfully" });
     },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        description: error.message || "Failed to save signature",
-      });
-    },
   });
 
   const uploadPhotoMutation = useMutation({
-    mutationFn: ({
-      invoiceId,
-      photoData,
-      caption,
-    }: {
-      invoiceId: number;
-      photoData: string;
-      caption?: string;
-    }) =>
-      apiRequest("POST", `/api/invoices/${invoiceId}/photos`, {
-        photo_data: photoData,
-        caption,
-      }),
+    mutationFn: ({ invoiceId, photoData, caption }: { invoiceId: number; photoData: string; caption?: string }) =>
+      apiRequest("POST", `/api/invoices/${invoiceId}/photos`, { photo_data: photoData, caption }),
     onSuccess: () => {
-      if (photoInvoice) {
-        queryClient.invalidateQueries({
-          queryKey: [`/api/invoices/${photoInvoice.id}/photos`],
-        });
-      }
+      if (photoInvoice) queryClient.invalidateQueries({ queryKey: [`/api/invoices/${photoInvoice.id}/photos`] });
       setSelectedPhotoFile(null);
       setPhotoCaption("");
       toast({ description: "Photo uploaded successfully." });
     },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        description: error.message || "Failed to upload photo.",
-      });
-    },
   });
 
   const deletePhotoMutation = useMutation({
-    mutationFn: ({
-      invoiceId,
-      photoId,
-    }: {
-      invoiceId: number;
-      photoId: number;
-    }) => apiRequest("DELETE", `/api/invoices/${invoiceId}/photos/${photoId}`),
+    mutationFn: ({ invoiceId, photoId }: { invoiceId: number; photoId: number }) =>
+      apiRequest("DELETE", `/api/invoices/${invoiceId}/photos/${photoId}`),
     onSuccess: () => {
-      if (photoInvoice) {
-        queryClient.invalidateQueries({
-          queryKey: [`/api/invoices/${photoInvoice.id}/photos`],
-        });
-      }
+      if (photoInvoice) queryClient.invalidateQueries({ queryKey: [`/api/invoices/${photoInvoice.id}/photos`] });
       toast({ description: "Photo deleted successfully." });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        description: error.message || "Failed to delete photo.",
-      });
     },
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({
-      invoiceId,
-      status,
-      payment_method,
-    }: {
-      invoiceId: number;
-      status: string;
-      payment_method?: string;
-    }) =>
-      apiRequest("PATCH", `/api/invoices/${invoiceId}/status`, {
-        status,
-        payment_method,
-      }),
+    mutationFn: ({ invoiceId, status, payment_method }: { invoiceId: number; status: string; payment_method?: string }) =>
+      apiRequest("PATCH", `/api/invoices/${invoiceId}/status`, { status, payment_method }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       setPaymentInvoice(null);
-      setSelectedPaymentMethod(null);
-      toast({ description: "Invoice status updated successfully." });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: "destructive",
-        description: error.message || "Failed to update invoice status.",
-      });
+      toast({ description: "Invoice marked as paid." });
     },
   });
 
-  const handleOpenAddDialog = () => { 
-    form.reset();
-    setIsAddDialogOpen(true);
-  };
-
-  const handleSubmit = (data: InsertInvoice) => {
-    createMutation.mutate(data);
-  };
-
-  const handleDelete = () => {
-    if (deletingInvoice) {
-      deleteMutation.mutate(deletingInvoice.id);
-    }
-  };
-
-  const handleSaveSignature = (signature: string) => {
-    if (!authorizationInvoice) return;
-
-    signatureMutation.mutate({
-      invoiceId: authorizationInvoice.id,
-      signature,
-    });
-  };
-
-  const handlePhotoSelection = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setSelectedPhotoFile(file);
-  };
-
-  const convertFileToBase64 = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("Failed to read file."));
-      reader.readAsDataURL(file);
-    });
-
-  const handleUploadPhoto = async () => {
-    if (!photoInvoice || !selectedPhotoFile) return;
+  // Stripe: create payment link and open it / send to customer
+  const handleSendStripeLink = async (invoice: Invoice) => {
+    setStripeLoading(invoice.id);
     try {
-      const base64Data = await convertFileToBase64(selectedPhotoFile);
-      uploadPhotoMutation.mutate({
-        invoiceId: photoInvoice.id,
-        photoData: base64Data,
-        caption: photoCaption.trim() || undefined,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        description: error.message || "Failed to read the selected photo.",
-      });
+      const result: any = await apiRequest("POST", `/api/invoices/${invoice.id}/stripe-link`, {});
+      if (result.url) {
+        // Copy link to clipboard and show toast with the link
+        await navigator.clipboard.writeText(result.url).catch(() => {});
+        toast({
+          description: (
+            <div className="flex flex-col gap-2">
+              <span>Payment link created!</span>
+              <a href={result.url} target="_blank" rel="noopener noreferrer" className="underline text-primary text-sm">
+                Open link ↗
+              </a>
+              <span className="text-xs text-muted-foreground">Link copied to clipboard</span>
+            </div>
+          ) as any,
+        });
+      }
+    } catch (err: any) {
+      toast({ variant: "destructive", description: err.message || "Failed to create payment link" });
+    } finally {
+      setStripeLoading(null);
     }
-  };
-
-const handleDownloadPDF = async (invoice: Invoice) => {
-  try {
-    // Fetch fresh invoice data to ensure the latest signature
-    const response = await apiRequest("GET", `/api/invoices/${invoice.id}`);
-    const freshInvoice = response as any;
-    
-    // Merge fresh data with existing invoice data
-    const invoiceWithSignature = {
-      ...invoice,
-      customer_signature: freshInvoice.customer_signature || invoice.customer_signature,
-    };
-    
-    const customer = customers?.find((c) => c.id === invoice.customerId);
-    
-    // Create a temporary container for PDF generation
-    const container = document.createElement("div");
-    container.id = `invoice-content-${invoice.id}`;
-    container.innerHTML = createInvoiceHTML(invoiceWithSignature, customer);
-    container.style.position = "absolute";
-    container.style.left = "-9999px";
-    document.body.appendChild(container);
-
-    await generateInvoicePDF(
-      invoiceWithSignature,
-      customer,
-      `Invoice-${invoice.id}-${invoice.customerName}`
-    );
-
-    document.body.removeChild(container);
-    toast({ description: "Invoice downloaded successfully" });
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    toast({
-      description: "Failed to download invoice",
-      variant: "destructive",
-    });
-  }
-};
-
-  const filteredInvoices = invoices?.filter((invoice) => {
-    const matchesSearch =
-      invoice.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || invoice.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }) || [];
-
-  const getStatusVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-      case "paid":
-        return "default"; // green/success
-      case "sent":
-        return "secondary"; // orange
-      case "draft":
-        return "outline"; // yellow/warning style
-      default:
-        return "secondary";
-    }
-  };
-
-  const getStatusClassName = (status?: string) => {
-    switch (status) {
-      case "paid":
-        return "bg-green-100 text-green-800 border-green-200 hover:bg-green-100";
-      case "sent":
-        return "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100";
-      case "draft":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100";
-      default:
-        return "";
-    }
-  };
-
-  const handleMarkSent = (invoice: Invoice) => {
-    updateStatusMutation.mutate({
-      invoiceId: invoice.id,
-      status: "sent",
-    });
   };
 
   const handlePaymentMethodSelect = (method: string) => {
@@ -386,344 +222,286 @@ const handleDownloadPDF = async (invoice: Invoice) => {
     });
   };
 
-  const formatPaidDate = (dateStr?: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString();
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    try {
+      const response = await apiRequest("GET", `/api/invoices/${invoice.id}`);
+      const freshInvoice = response as any;
+      const invoiceWithSignature = { ...invoice, customer_signature: freshInvoice.customer_signature || invoice.customer_signature };
+      const customer = customers?.find((c) => c.id === invoice.customerId);
+      const container = document.createElement("div");
+      container.id = `invoice-content-${invoice.id}`;
+      container.innerHTML = createInvoiceHTML(invoiceWithSignature, customer);
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      document.body.appendChild(container);
+      await generateInvoicePDF(invoiceWithSignature, customer, `Invoice-${invoice.id}-${invoice.customerName}`);
+      document.body.removeChild(container);
+      toast({ description: "Invoice downloaded successfully" });
+    } catch {
+      toast({ description: "Failed to download invoice", variant: "destructive" });
+    }
   };
 
+  const handleUploadPhoto = async () => {
+    if (!photoInvoice || !selectedPhotoFile) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      uploadPhotoMutation.mutate({ invoiceId: photoInvoice.id, photoData: reader.result as string, caption: photoCaption.trim() || undefined });
+    };
+    reader.readAsDataURL(selectedPhotoFile);
+  };
+
+  const filteredInvoices = invoices?.filter((inv) => {
+    const matchesSearch =
+      inv.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || inv.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }) ?? [];
+
+  const filters = ["all", "draft", "sent", "paid"];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
           <p className="text-sm text-muted-foreground">Create and manage customer invoices</p>
         </div>
-        <Button onClick={handleOpenAddDialog} data-testid="button-add-invoice">
-          <Plus className="w-4 h-4 mr-2" />
-          New Invoice
+        <Button onClick={() => { form.reset(); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
+          <Plus className="w-4 h-4 mr-1.5" />
+          New
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap gap-4 items-center">
-            <Input
-              placeholder="Search by customer or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-xs"
-              data-testid="input-search-invoices"
-            />
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            >
-              <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {invoicesLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Labor/Materials</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices && filteredInvoices.length > 0 ? (
-                  filteredInvoices.map((invoice) => (
-                    <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
-                      <TableCell className="font-medium" data-testid={`text-customer-${invoice.id}`}>
-                        {invoice.customerName}
-                      </TableCell>
-                      <TableCell data-testid={`text-date-${invoice.id}`}>{invoice.date}</TableCell>
-                      <TableCell data-testid={`text-amount-${invoice.id}`}>
-                        ${formatCurrency(invoice.labor_cost)}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate" data-testid={`text-description-${invoice.id}`}>
-                        {invoice.description}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {invoice.status && (
-                            <Badge
-                              variant={getStatusVariant(invoice.status)}
-                              className={getStatusClassName(invoice.status)}
-                              data-testid={`badge-status-${invoice.id}`}
-                            >
-                              {invoice.status}
-                            </Badge>
-                          )}
-                          {invoice.status === "paid" && (
-                            <span className="text-xs text-muted-foreground">
-                              {invoice.payment_method && `${invoice.payment_method}`}
-                              {invoice.paid_date && ` - ${formatPaidDate(invoice.paid_date)}`}
-                            </span>
-                          )}
-                          {invoice.status === "draft" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleMarkSent(invoice)}
-                              disabled={updateStatusMutation.isPending}
-                              data-testid={`button-mark-sent-${invoice.id}`}
-                            >
-                              <Send className="mr-1 h-3 w-3" />
-                              Mark Sent
-                            </Button>
-                          )}
-                          {invoice.status !== "paid" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setPaymentInvoice(invoice)}
-                              disabled={updateStatusMutation.isPending}
-                              data-testid={`button-mark-paid-${invoice.id}`}
-                            >
-                              <CreditCard className="mr-1 h-3 w-3" />
-                              Mark Paid
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setPhotoInvoice(invoice);
-                              setSelectedPhotoFile(null);
-                              setPhotoCaption("");
-                            }}
-                            data-testid={`button-photos-${invoice.id}`}
-                          >
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            Photos
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setAuthorizationInvoice(invoice)}
-                            data-testid={`button-authorize-${invoice.id}`}
-                          >
-                            Get Customer Authorization
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDownloadPDF(invoice)}
-                            data-testid={`button-download-${invoice.id}`}
-                            title="Download as PDF"
-                          >
-                            <Download className="w-4 h-4 text-blue-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeletingInvoice(invoice)}
-                            data-testid={`button-delete-${invoice.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No invoices yet. Create your first invoice to get started.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Search */}
+      <Input
+        placeholder="Search by customer or description..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        data-testid="input-search-invoices"
+      />
 
-      {/* Add Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          setIsAddDialogOpen(false);
-          form.reset();
-        }
-      }}>
-        <DialogContent
-          data-testid="dialog-invoice-form"
-          className="max-h-[90vh] overflow-y-auto"
-        >
+      {/* Filter pills */}
+      <div className="mobile-filter-row">
+        {filters.map((f) => (
+          <button
+            key={f}
+            className={`mobile-filter-pill${statusFilter === f ? " active" : ""}`}
+            onClick={() => setStatusFilter(f)}
+          >
+            {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Invoice cards */}
+      {invoicesLoading ? (
+        <div className="mobile-card-list">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+        </div>
+      ) : filteredInvoices.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <div className="text-4xl mb-3">🎉</div>
+          <div className="font-medium">
+            {statusFilter === "paid" ? "All paid up!" : "No invoices found"}
+          </div>
+        </div>
+      ) : (
+        <div className="mobile-card-list">
+          {filteredInvoices.map((invoice) => {
+            const color = getAvatarColor(invoice.customerName || "");
+            return (
+              <div key={invoice.id} className="mobile-card" data-testid={`row-invoice-${invoice.id}`}>
+                <div className="mobile-card-top">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="mobile-avatar"
+                      style={{ background: `linear-gradient(135deg, ${color}, ${color}99)` }}
+                    >
+                      {getInitials(invoice.customerName || "?")}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="mobile-card-title truncate" data-testid={`text-customer-${invoice.id}`}>
+                        {invoice.customerName}
+                      </div>
+                      <div className="mobile-card-meta">
+                        <span className="mobile-card-date" data-testid={`text-date-${invoice.id}`}>{invoice.date}</span>
+                        <StatusPill status={invoice.status} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mobile-card-amount" data-testid={`text-amount-${invoice.id}`}>
+                    ${formatCurrency(invoice.labor_cost)}
+                  </div>
+                </div>
+
+                {invoice.description && (
+                  <div className="mobile-card-desc" data-testid={`text-description-${invoice.id}`}>
+                    {invoice.description}
+                  </div>
+                )}
+
+                {invoice.status === "paid" && invoice.payment_method && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Paid via {invoice.payment_method}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="mobile-card-actions flex-wrap gap-2 mt-3">
+                  {invoice.status !== "paid" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setPaymentInvoice(invoice)}
+                      data-testid={`button-mark-paid-${invoice.id}`}
+                    >
+                      <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+                      Mark Paid
+                    </Button>
+                  )}
+                  {invoice.status !== "paid" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleSendStripeLink(invoice)}
+                      disabled={stripeLoading === invoice.id}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                      {stripeLoading === invoice.id ? "..." : "Pay Link"}
+                    </Button>
+                  )}
+                  {invoice.status === "draft" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => updateStatusMutation.mutate({ invoiceId: invoice.id, status: "sent" })}
+                      data-testid={`button-mark-sent-${invoice.id}`}
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1.5" />
+                      Mark Sent
+                    </Button>
+                  )}
+                </div>
+
+                {/* Secondary actions */}
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                  <Button
+                    size="sm" variant="ghost"
+                    onClick={() => { setPhotoInvoice(invoice); setSelectedPhotoFile(null); setPhotoCaption(""); }}
+                    data-testid={`button-photos-${invoice.id}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 mr-1" /> Photos
+                  </Button>
+                  <Button
+                    size="sm" variant="ghost"
+                    onClick={() => setAuthorizationInvoice(invoice)}
+                    data-testid={`button-authorize-${invoice.id}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    ✍️ Sign
+                  </Button>
+                  <Button
+                    size="sm" variant="ghost"
+                    onClick={() => handleDownloadPDF(invoice)}
+                    data-testid={`button-download-${invoice.id}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                  </Button>
+                  <Button
+                    size="sm" variant="ghost"
+                    onClick={() => setDeletingInvoice(invoice)}
+                    data-testid={`button-delete-${invoice.id}`}
+                    className="ml-auto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Invoice Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={(o) => { if (!o) { setIsAddDialogOpen(false); form.reset(); } }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto" data-testid="dialog-invoice-form">
           <DialogHeader>
             <DialogTitle>Create New Invoice</DialogTitle>
-            <DialogDescription>
-              Create an invoice for a customer
-            </DialogDescription>
+            <DialogDescription>Create an invoice for a customer</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="customerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                      value={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="select-customer-invoice">
-                          <SelectValue placeholder="Select a customer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {customers && customers.length > 0 ? (
-                          customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id.toString()}>
-                              {customer.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="0" disabled>
-                            No customers available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="invoiceNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Invoice Number (Optional)</FormLabel>
+            <form onSubmit={form.handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+              <FormField control={form.control} name="customerId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer</FormLabel>
+                  <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString()}>
                     <FormControl>
-                      <Input 
-                        {...field} 
-                        placeholder="Auto-generated if left blank"
-                        data-testid="input-invoice-number" 
-                      />
+                      <SelectTrigger data-testid="select-customer-invoice"><SelectValue placeholder="Select a customer" /></SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} data-testid="input-invoice-date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="technician"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Technician</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        placeholder="Technician name"
-                        data-testid="input-technician" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="workPerformed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Work to be Performed</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="AC repair, maintenance, installation..."
-                        {...field}
-                        data-testid="input-work-performed"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description of Work Performed</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Detailed description of the completed work..."
-                        {...field}
-                        data-testid="input-invoice-description"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="labor_cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Labor/Materials</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                        data-testid="input-invoice-labor-cost"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <Button
-                  type="submit"
-                  disabled={createMutation.isPending}
-                  data-testid="button-submit-invoice"
-                  className="min-h-11 text-base"
-                >
+                    <SelectContent>
+                      {customers?.map((c) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="invoiceNumber" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invoice Number (Optional)</FormLabel>
+                  <FormControl><Input {...field} placeholder="Auto-generated if blank" data-testid="input-invoice-number" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="date" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl><Input type="date" {...field} data-testid="input-invoice-date" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="technician" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Technician</FormLabel>
+                  <FormControl><Input {...field} placeholder="Technician name" data-testid="input-technician" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="workPerformed" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Work to be Performed</FormLabel>
+                  <FormControl><Textarea placeholder="AC repair, maintenance..." {...field} data-testid="input-work-performed" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="description" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl><Textarea placeholder="Detailed description..." {...field} data-testid="input-invoice-description" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="labor_cost" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Labor/Materials ($)</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" placeholder="0.00" {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      data-testid="input-invoice-labor-cost" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <DialogFooter>
+                <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-invoice" className="w-full min-h-11">
                   {createMutation.isPending ? "Creating..." : "Create Invoice"}
                 </Button>
               </DialogFooter>
@@ -732,152 +510,73 @@ const handleDownloadPDF = async (invoice: Invoice) => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deletingInvoice} onOpenChange={(open) => {
-        if (!open) setDeletingInvoice(null);
-      }}>
-        <DialogContent
-          data-testid="dialog-delete-invoice"
-          className="max-h-[90vh] overflow-y-auto"
-        >
+      {/* Delete Dialog */}
+      <Dialog open={!!deletingInvoice} onOpenChange={(o) => { if (!o) setDeletingInvoice(null); }}>
+        <DialogContent data-testid="dialog-delete-invoice">
           <DialogHeader>
             <DialogTitle>Delete Invoice</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this invoice? This action cannot be undone.
-            </DialogDescription>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setDeletingInvoice(null)}
-              data-testid="button-cancel-delete"
-              className="min-h-11 text-base"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-              data-testid="button-confirm-delete"
-              className="min-h-11 text-base"
-            >
+          <DialogFooter className="flex flex-col gap-2">
+            <Button variant="destructive" onClick={() => deletingInvoice && deleteMutation.mutate(deletingInvoice.id)} disabled={deleteMutation.isPending} data-testid="button-confirm-delete" className="min-h-11">
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
+            <Button variant="outline" onClick={() => setDeletingInvoice(null)} data-testid="button-cancel-delete" className="min-h-11">Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Customer Authorization Dialog */}
-      <Dialog
-        open={!!authorizationInvoice}
-        onOpenChange={(open) => {
-          if (!open) setAuthorizationInvoice(null);
-        }}
-      >
+      {/* Signature Dialog */}
+      <Dialog open={!!authorizationInvoice} onOpenChange={(o) => { if (!o) setAuthorizationInvoice(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Customer Authorization</DialogTitle>
-            <DialogDescription>
-              Obtain a customer signature to authorize work on this invoice.
-            </DialogDescription>
+            <DialogDescription>Obtain customer signature to authorize work.</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              {authorizationInvoice
-                ? `Invoice #${authorizationInvoice.invoiceNumber || authorizationInvoice.id}`
-                : "Select an invoice to capture a signature."}
-            </div>
-            <SignaturePad
-              onSave={handleSaveSignature}
-              isSaving={signatureMutation.isPending}
-            />
+          <div className="text-sm text-muted-foreground mb-2">
+            {authorizationInvoice ? `Invoice #${authorizationInvoice.invoiceNumber || authorizationInvoice.id}` : ""}
           </div>
+          <SignaturePad
+            onSave={(sig) => authorizationInvoice && signatureMutation.mutate({ invoiceId: authorizationInvoice.id, signature: sig })}
+            isSaving={signatureMutation.isPending}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* Invoice Photos Dialog */}
-      <Dialog
-        open={!!photoInvoice}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPhotoInvoice(null);
-            setSelectedPhotoFile(null);
-            setPhotoCaption("");
-          }
-        }}
-      >
+      {/* Photos Dialog */}
+      <Dialog open={!!photoInvoice} onOpenChange={(o) => { if (!o) { setPhotoInvoice(null); setSelectedPhotoFile(null); setPhotoCaption(""); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Invoice Photos</DialogTitle>
-            <DialogDescription>
-              {photoInvoice
-                ? `Upload and manage photos for invoice #${
-                    photoInvoice.invoiceNumber || photoInvoice.id
-                  }.`
-                : "Select an invoice to view photos."}
-            </DialogDescription>
+            <DialogDescription>Upload and manage photos for invoice #{photoInvoice?.invoiceNumber || photoInvoice?.id}</DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4">
             <div className="rounded-lg border bg-muted/30 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Photo file
-                  </label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelection}
-                    className="min-h-11"
-                  />
-                  {selectedPhotoFile && (
-                    <p className="text-xs text-muted-foreground">
-                      Selected: {selectedPhotoFile.name}
-                    </p>
-                  )}
+                  <label className="text-sm font-medium">Photo file</label>
+                  <Input type="file" accept="image/*" onChange={(e: ChangeEvent<HTMLInputElement>) => setSelectedPhotoFile(e.target.files?.[0] ?? null)} className="min-h-11" />
+                  {selectedPhotoFile && <p className="text-xs text-muted-foreground">Selected: {selectedPhotoFile.name}</p>}
                 </div>
                 <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Caption
-                  </label>
-                  <Input
-                    placeholder="Add a caption for context"
-                    value={photoCaption}
-                    onChange={(event) => setPhotoCaption(event.target.value)}
-                    className="min-h-11"
-                  />
+                  <label className="text-sm font-medium">Caption</label>
+                  <Input placeholder="Add a caption" value={photoCaption} onChange={(e) => setPhotoCaption(e.target.value)} className="min-h-11" />
                 </div>
-                <Button
-                  type="button"
-                  onClick={handleUploadPhoto}
-                  disabled={!selectedPhotoFile || uploadPhotoMutation.isPending}
-                  className="min-h-11"
-                >
+                <Button onClick={handleUploadPhoto} disabled={!selectedPhotoFile || uploadPhotoMutation.isPending} className="min-h-11">
                   <Upload className="mr-2 h-4 w-4" />
                   {uploadPhotoMutation.isPending ? "Uploading..." : "Upload"}
                 </Button>
               </div>
             </div>
-
             {photosLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4].map((item) => (
-                  <Skeleton key={item} className="h-24 w-full" />
-                ))}
-              </div>
+              <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
             ) : (
               <PhotoGallery
                 photos={invoicePhotos}
                 deletingPhotoId={deletePhotoMutation.variables?.photoId}
                 onDelete={(photo) => {
                   if (!photoInvoice) return;
-                  deletePhotoMutation.mutate({
-                    invoiceId: photoInvoice.id,
-                    photoId: photo.id,
-                  });
+                  deletePhotoMutation.mutate({ invoiceId: photoInvoice.id, photoId: photo.id });
                 }}
               />
             )}
@@ -886,33 +585,20 @@ const handleDownloadPDF = async (invoice: Invoice) => {
       </Dialog>
 
       {/* Payment Method Dialog */}
-      <Dialog
-        open={!!paymentInvoice}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPaymentInvoice(null);
-            setSelectedPaymentMethod(null);
-          }
-        }}
-      >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <Dialog open={!!paymentInvoice} onOpenChange={(o) => { if (!o) setPaymentInvoice(null); }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Select Payment Method</DialogTitle>
+            <DialogTitle>How was it paid?</DialogTitle>
             <DialogDescription>
-              {paymentInvoice
-                ? `How was invoice #${
-                    paymentInvoice.invoiceNumber || paymentInvoice.id
-                  } paid?`
-                : "Select an invoice to mark as paid."}
+              Invoice #{paymentInvoice?.invoiceNumber || paymentInvoice?.id} · ${formatCurrency(paymentInvoice?.labor_cost ?? 0)}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3 py-4">
-            {["Cash", "Zelle", "Check", "Credit Card", "Other"].map((method) => (
+          <div className="grid grid-cols-2 gap-3 py-2">
+            {["Cash", "Zelle", "Check", "Credit Card", "Cash App", "Other"].map((method) => (
               <Button
                 key={method}
                 variant="outline"
-                className="h-16 text-base"
+                className="h-14 text-sm font-semibold"
                 onClick={() => handlePaymentMethodSelect(method)}
                 disabled={updateStatusMutation.isPending}
                 data-testid={`button-payment-${method.toLowerCase().replace(" ", "-")}`}
@@ -921,19 +607,7 @@ const handleDownloadPDF = async (invoice: Invoice) => {
               </Button>
             ))}
           </div>
-
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setPaymentInvoice(null);
-                setSelectedPaymentMethod(null);
-              }}
-              disabled={updateStatusMutation.isPending}
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
+          <Button variant="ghost" onClick={() => setPaymentInvoice(null)} className="w-full">Cancel</Button>
         </DialogContent>
       </Dialog>
     </div>
