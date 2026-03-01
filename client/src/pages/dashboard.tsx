@@ -84,8 +84,8 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* Greeting */}
       <div>
-        <p className="text-sm text-muted-foreground">Good day,</p>
-        <h1 className="text-2xl font-bold text-foreground">Ferdinand 👋</h1>
+        <p className="text-sm text-muted-foreground">Welcome,</p>
+        <h1 className="text-2xl font-bold text-foreground">FerdAir</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Here's your business overview</p>
       </div>
 
