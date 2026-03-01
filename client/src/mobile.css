@@ -1,0 +1,231 @@
+/* ============================================
+   MOBILE UI — append this to the end of index.css
+   ============================================ */
+
+/* Bottom nav bar */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: hsl(var(--background));
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: stretch;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 50;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding-top: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--muted-foreground));
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-item.active {
+  color: hsl(var(--primary));
+}
+
+.mobile-nav-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.mobile-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Mobile card list — replaces overflow tables */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-card:active {
+  transform: scale(0.98);
+}
+
+.mobile-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mobile-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  line-height: 1.3;
+}
+
+.mobile-card-amount {
+  font-size: 18px;
+  font-weight: 800;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobile-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.mobile-card-date {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.mobile-card-desc {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  margin-top: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mobile-card-actions > * {
+  flex: 1;
+}
+
+/* Mobile filter pills */
+.mobile-filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-filter-pill {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid hsl(var(--border));
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--muted-foreground));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-filter-pill.active {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Avatar initials */
+.mobile-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Stat cards grid */
+.mobile-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 640px) {
+  .mobile-stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mobile-stat-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  padding: 16px 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.mobile-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.mobile-stat-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: hsl(var(--foreground));
+  line-height: 1.1;
+  margin-top: 3px;
+}
+
+.mobile-stat-meta {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  margin-top: 3px;
+}
