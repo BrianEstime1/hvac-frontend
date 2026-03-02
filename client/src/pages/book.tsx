@@ -323,7 +323,7 @@ export default function BookingPortal() {
               We'll call <strong>{form.phone}</strong> to confirm your appointment.
             </p>
             <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground max-w-sm mx-auto">
-              Questions? Call us at <a href="tel:+15615550100" className="font-semibold text-foreground underline">(561) 555-0100</a>
+              Questions? Call us at <a href="tel:+15615775327" className="font-semibold text-foreground underline">(561) 577-5327</a>
             </div>
             <Button
               variant="outline"
