@@ -37,7 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle } from "lucide-react";
 import { insertAppointmentSchema, type Appointment, type InsertAppointment, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +102,19 @@ export default function Appointments() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setDeletingAppointment(null);
       toast({ description: "Appointment deleted successfully" });
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("PUT", `/api/appointments/${id}/status`, { status: "scheduled" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({ description: "Appointment confirmed!" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Failed to confirm appointment" });
     },
   });
 
@@ -178,13 +191,27 @@ export default function Appointments() {
                                 ? "destructive"
                                 : "secondary"
                             }
+                            style={appointment.status === "pending" ? { background: "#f59e0b20", color: "#f59e0b", border: "1px solid #f59e0b40" } : {}}
                             data-testid={`badge-status-${appointment.id}`}
                           >
-                            {appointment.status}
+                            {appointment.status === "pending" ? "⚠ Pending" : appointment.status}
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right flex items-center justify-end gap-1">
+                        {appointment.status === "pending" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => confirmMutation.mutate(appointment.id)}
+                            disabled={confirmMutation.isPending}
+                            style={{ color: "#22c55e", fontSize: "0.75rem", gap: "0.3rem" }}
+                            data-testid={`button-confirm-${appointment.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Confirm
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
