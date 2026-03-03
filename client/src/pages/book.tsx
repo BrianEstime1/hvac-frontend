@@ -1,8 +1,14 @@
+import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -90,11 +96,18 @@ export default function BookingPortal() {
       {/* Header */}
       <div className="border-b bg-background sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          <div>
-            <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--foreground)" }}>
-              FERD<span style={{ color: "#2563eb" }}>AIR</span>
+          <div className="flex items-center gap-3">
+            <a href="/" style={{ display: "flex", alignItems: "center", color: "rgba(255,255,255,0.5)", textDecoration: "none" }}
+               onMouseOver={e => (e.currentTarget.style.color = "#fff")}
+               onMouseOut={e => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}>
+              <ArrowLeft style={{ width: "18px", height: "18px" }} />
+            </a>
+            <div>
+              <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.4rem", fontWeight: 700, letterSpacing: "0.06em", color: "var(--foreground)" }}>
+                FERD<span style={{ color: "#2563eb" }}>AIR</span>
+              </div>
+              <div className="text-xs text-muted-foreground">Book a Service</div>
             </div>
-            <div className="text-xs text-muted-foreground">Book a Service</div>
           </div>
         </div>
       </div>
@@ -219,13 +232,17 @@ export default function BookingPortal() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground block mb-1.5">Preferred Date *</label>
-                <Input
-                  type="date"
-                  min={minDate}
-                  value={form.preferred_date}
-                  onChange={(e) => set("preferred_date", e.target.value)}
-                  className="min-h-12 text-base"
-                />
+                <div style={{ position: "relative" }}>
+                  <Input
+                    type="date"
+                    min={minDate}
+                    value={form.preferred_date}
+                    onChange={(e) => set("preferred_date", e.target.value)}
+                    className="min-h-12 text-base"
+                    style={{ paddingRight: "2.5rem" }}
+                  />
+                  <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#2563eb", fontSize: "1rem" }}>📅</span>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground block mb-1.5">Preferred Time *</label>
