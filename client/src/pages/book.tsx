@@ -239,9 +239,12 @@ export default function BookingPortal() {
                     value={form.preferred_date}
                     onChange={(e) => set("preferred_date", e.target.value)}
                     className="min-h-12 text-base"
-                    style={{ paddingRight: "2.5rem" }}
+                    style={{ paddingLeft: "2.75rem", cursor: "pointer" }}
+                    onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                   />
-                  <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#2563eb", fontSize: "1rem" }}>📅</span>
+                  <span
+                    style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#2563eb", fontSize: "1.1rem" }}
+                  >📅</span>
                 </div>
               </div>
               <div>
