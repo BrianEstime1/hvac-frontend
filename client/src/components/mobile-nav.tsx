@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, Calendar, FileText, Package } from "lucide-react";
+import { Home, Users, Calendar, FileText, Package, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { title: "Clients",   url: "/customers",    icon: Users },
   { title: "Invoices",  url: "/invoices",     icon: FileText },
   { title: "Appts",     url: "/appointments", icon: Calendar },
+  { title: "Quotes",    url: "/quotes",       icon: ClipboardList },
   { title: "Parts",     url: "/inventory",    icon: Package },
 ];
 
