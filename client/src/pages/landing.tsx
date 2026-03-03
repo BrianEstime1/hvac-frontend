@@ -174,7 +174,12 @@ export default function LandingPage() {
             opacity: heroLoaded ? 1 : 0, transform: heroLoaded ? "translateY(0)" : "translateY(24px)",
             transition: "all 0.7s ease 0.3s" }}>
             <a href="/book" className="fa-btn-primary">BOOK A SERVICE →</a>
-            <a href="tel:+5615775327" className="fa-btn-outline">📞 Call Us Now</a>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <a href="tel:+5615775327" className="fa-btn-outline" style={{ textAlign: "center" }}>📞 (561) 577-5327</a>
+              <a href="tel:+15614034166" style={{ textAlign: "center", color: "rgba(255,255,255,0.45)", fontSize: "0.8rem", textDecoration: "none", letterSpacing: "0.04em" }}>
+                or (561) 403-4166
+              </a>
+            </div>
           </div>
 
           {/* stats */}
@@ -312,9 +317,14 @@ export default function LandingPage() {
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <a href="/book" className="fa-btn-primary" style={{ fontSize: "1.1rem", padding: "1.1rem 3rem",
                 boxShadow: "0 0 50px rgba(37,99,235,0.35)" }}>BOOK NOW →</a>
-              <a href="tel:+5615775327" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
-                📞 (561) 577-5327
-              </a>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "center" }}>
+                <a href="tel:+5615775327" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
+                  📞 (561) 577-5327
+                </a>
+                <a href="tel:+15614034166" style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.8rem", textDecoration: "none", letterSpacing: "0.04em" }}>
+                  or (561) 403-4166
+                </a>
+              </div>
             </div>
           </div>
         </div>
