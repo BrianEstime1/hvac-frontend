@@ -52,12 +52,11 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-6">
           <div className="flex justify-center">
-            <img
-              src="/ferdair_professional_logo.png"
-              alt="FerdAir Logo"
-              className="h-20 w-auto object-contain"
-            />
+            <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: "2rem", fontWeight: 700, letterSpacing: "0.06em" }}>
+              FERD<span style={{ color: "#2563eb" }}>AIR</span>
+            </div>
           </div>
+          <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet" />
           <div className="text-center space-y-2">
             <CardTitle className="text-xl font-semibold">
               FerdAir Manager
