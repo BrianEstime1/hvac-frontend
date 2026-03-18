@@ -36,7 +36,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response and cache it
         if (response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME)
@@ -47,8 +46,50 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // If network fails, try cache
         return caches.match(event.request);
       })
+  );
+});
+
+// ── Push Notification Handler ─────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  let data = { title: 'FerdAir', body: 'New notification', url: '/appointments' };
+  try {
+    if (event.data) data = JSON.parse(event.data.text());
+  } catch (e) {}
+
+  const options = {
+    body: data.body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [200, 100, 200],
+    data: { url: data.url || '/appointments' },
+    actions: [
+      { action: 'open', title: 'View' },
+      { action: 'close', title: 'Dismiss' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Open app when notification is clicked
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  if (event.action === 'close') return;
+
+  const url = event.notification.data?.url || '/appointments';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('ferdair.com') && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow('https://ferdair.com' + url);
+    })
   );
 });
