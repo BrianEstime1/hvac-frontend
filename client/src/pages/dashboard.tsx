@@ -105,7 +105,8 @@ export default function Dashboard() {
 
       const reg = await navigator.serviceWorker.ready;
       // Get VAPID public key from backend
-      const keyRes = await fetch(import.meta.env.VITE_API_URL + '/api/push/vapid-public-key');
+      const apiBase = import.meta.env.VITE_API_BASE_URL?.trim() || 'https://hvac-management-api.onrender.com';
+      const keyRes = await fetch(apiBase + '/api/push/vapid-public-key');
       const { publicKey } = await keyRes.json();
 
       const sub = await reg.pushManager.subscribe({
