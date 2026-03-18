@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, AlertTriangle, DollarSign } from "lucide-react";
+import { Users, Calendar, AlertTriangle, DollarSign, Bell, BellOff } from "lucide-react";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 import type { DashboardStats } from "@shared/schema";
 
 const avatarColors = ["#0EA5E9", "#8B5CF6", "#10B981", "#F59E0B", "#EF4444", "#3B82F6"];
@@ -80,13 +82,93 @@ export default function Dashboard() {
     }
   };
 
+
+  const [notifStatus, setNotifStatus] = useState<'default'|'granted'|'denied'>('default');
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotifStatus(Notification.permission as any);
+    }
+  }, []);
+
+  async function enableNotifications() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Push notifications are not supported on this browser.');
+      return;
+    }
+    setNotifLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setNotifStatus(permission as any);
+      if (permission !== 'granted') { setNotifLoading(false); return; }
+
+      const reg = await navigator.serviceWorker.ready;
+      // Get VAPID public key from backend
+      const keyRes = await fetch(import.meta.env.VITE_API_URL + '/api/push/vapid-public-key');
+      const { publicKey } = await keyRes.json();
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+
+      await apiRequest('POST', '/api/push/subscribe', sub.toJSON());
+      setNotifStatus('granted');
+    } catch (e) {
+      console.error('Push subscription failed:', e);
+    }
+    setNotifLoading(false);
+  }
+
+  async function disableNotifications() {
+    setNotifLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await apiRequest('POST', '/api/push/unsubscribe', sub.toJSON());
+        await sub.unsubscribe();
+      }
+      setNotifStatus('default');
+    } catch (e) {
+      console.error('Unsubscribe failed:', e);
+    }
+    setNotifLoading(false);
+  }
+
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+  }
+
   return (
     <div className="space-y-5">
       {/* Greeting */}
-      <div>
-        <p className="text-sm text-muted-foreground">Welcome,</p>
-        <h1 className="text-2xl font-bold text-foreground">FERDAIR</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Here's your business overview</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">Welcome,</p>
+          <h1 className="text-2xl font-bold text-foreground">FERDAIR</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Here's your business overview</p>
+        </div>
+        <button
+          onClick={notifStatus === 'granted' ? disableNotifications : enableNotifications}
+          disabled={notifLoading || notifStatus === 'denied'}
+          title={notifStatus === 'granted' ? 'Notifications on — tap to disable' : notifStatus === 'denied' ? 'Notifications blocked in browser settings' : 'Enable push notifications'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.5rem 0.9rem', borderRadius: '8px', border: 'none', cursor: notifStatus === 'denied' ? 'not-allowed' : 'pointer',
+            fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.04em',
+            background: notifStatus === 'granted' ? '#10B98120' : '#2563eb20',
+            color: notifStatus === 'granted' ? '#10B981' : notifStatus === 'denied' ? '#64748B' : '#2563eb',
+            transition: 'all 0.2s',
+          }}
+        >
+          {notifStatus === 'granted' ? <Bell style={{width:'14px',height:'14px'}} /> : <BellOff style={{width:'14px',height:'14px'}} />}
+          {notifLoading ? '...' : notifStatus === 'granted' ? 'Notifs ON' : notifStatus === 'denied' ? 'Blocked' : 'Enable Notifs'}
+        </button>
       </div>
 
       {/* Stat grid */}
