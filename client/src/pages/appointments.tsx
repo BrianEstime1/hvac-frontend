@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Appointments() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
+  const [viewingAppointment, setViewingAppointment] = useState<any | null>(null);
   const { toast } = useToast();
 
   const { data: appointments, isLoading: appointmentsLoading } = useQuery<Appointment[]>({
@@ -174,7 +175,7 @@ export default function Appointments() {
               <TableBody>
                 {appointments && appointments.length > 0 ? (
                   appointments.map((appointment) => (
-                    <TableRow key={appointment.id} data-testid={`row-appointment-${appointment.id}`}>
+                    <TableRow key={appointment.id} data-testid={`row-appointment-${appointment.id}`} onClick={() => setViewingAppointment(appointment)} style={{ cursor: "pointer" }} className="hover:bg-muted/40">
                       <TableCell className="font-medium">
                         {appointment.customerName || getCustomerName(appointment.customerId)}
                       </TableCell>
@@ -198,7 +199,7 @@ export default function Appointments() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right flex items-center justify-end gap-1">
+                      <TableCell className="text-right flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                         {appointment.status === "pending" && (
                           <Button
                             variant="ghost"
@@ -374,6 +375,90 @@ export default function Appointments() {
           </Form>
         </DialogContent>
       </Dialog>
+
+
+      {/* Appointment Detail Modal */}
+      {viewingAppointment && (
+        <Dialog open={!!viewingAppointment} onOpenChange={() => setViewingAppointment(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Appointment Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3">
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#2563eb20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", fontWeight: 700, color: "#2563eb", flexShrink: 0 }}>
+                  {(viewingAppointment.customerName || "?").split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)}
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground">{viewingAppointment.customerName || "Unknown"}</div>
+                  {(viewingAppointment as any).customerPhone && (
+                    <a href={`tel:${(viewingAppointment as any).customerPhone}`} className="text-sm text-blue-400 hover:underline">
+                      {(viewingAppointment as any).customerPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {(viewingAppointment as any).customerAddress && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Address: </span>
+                  <span className="text-foreground">{(viewingAppointment as any).customerAddress}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <div className="text-xs text-muted-foreground mb-1">Date</div>
+                  <div className="text-sm font-medium">{viewingAppointment.date}</div>
+                </div>
+                <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <div className="text-xs text-muted-foreground mb-1">Time</div>
+                  <div className="text-sm font-medium">{viewingAppointment.time}</div>
+                </div>
+              </div>
+
+              {(viewingAppointment as any).serviceType && (
+                <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <div className="text-xs text-muted-foreground mb-1">Service Type</div>
+                  <div className="text-sm font-medium">{(viewingAppointment as any).serviceType}</div>
+                </div>
+              )}
+
+              {viewingAppointment.description && (
+                <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <div className="text-xs text-muted-foreground mb-1">Notes</div>
+                  <div className="text-sm" style={{ whiteSpace: "pre-wrap" }}>{viewingAppointment.description}</div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Status:</span>
+                <Badge
+                  variant={viewingAppointment.status === "completed" ? "default" : viewingAppointment.status === "cancelled" ? "destructive" : "secondary"}
+                  style={viewingAppointment.status === "pending" ? { background: "#f59e0b20", color: "#f59e0b", border: "1px solid #f59e0b40" } : {}}
+                >
+                  {viewingAppointment.status === "pending" ? "⚠ Pending" : viewingAppointment.status}
+                </Badge>
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              {viewingAppointment.status === "pending" && (
+                <Button
+                  variant="outline"
+                  style={{ color: "#22c55e", borderColor: "#22c55e40" }}
+                  onClick={() => { confirmMutation.mutate(viewingAppointment.id); setViewingAppointment(null); }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" /> Confirm
+                </Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => { setDeletingAppointment(viewingAppointment); setViewingAppointment(null); }}>
+                Delete
+              </Button>
+              <Button variant="ghost" onClick={() => setViewingAppointment(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingAppointment} onOpenChange={(open) => !open && setDeletingAppointment(null)}>
