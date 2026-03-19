@@ -5,9 +5,12 @@ export function transformAppointmentFromAPI(apiAppointment: any): any {
     id: apiAppointment.id,
     customerId: apiAppointment.customer_id,
     customerName: apiAppointment.customer_name,
+    customerPhone: apiAppointment.customer_phone,
+    customerAddress: apiAppointment.customer_address,
     date: apiAppointment.appointment_date,
     time: apiAppointment.appointment_time,
-    description: apiAppointment.notes || apiAppointment.service_type,
+    serviceType: apiAppointment.service_type,
+    description: apiAppointment.notes,
     status: apiAppointment.status,
   };
 }
