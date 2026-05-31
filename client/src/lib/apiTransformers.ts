@@ -49,6 +49,10 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     description: apiInvoice.description || descriptionOfWorkPerformed,
     descriptionOfWorkPerformed,
     status: apiInvoice.status,
+    payment_method: apiInvoice.payment_method || undefined,
+    customer_signature: apiInvoice.customer_signature || undefined,
+    signature_date: apiInvoice.signature_date || undefined,
+    paid_date: apiInvoice.paid_date || undefined,
   };
 }
 
