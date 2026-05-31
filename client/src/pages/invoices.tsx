@@ -67,6 +67,8 @@ function StatusPill({ status }: { status?: string }) {
   );
 }
 
+const PAYMENT_METHODS = ["Cash", "Zelle", "Check", "Credit Card", "Cash App", "Other"];
+
 export default function Invoices() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
@@ -110,8 +112,15 @@ export default function Invoices() {
       workPerformed: "",
       labor_cost: 0,
       description: "",
+      payment_method: "",
     },
   });
+
+  const watchedLaborCost = form.watch("labor_cost") || 0;
+  const watchedPaymentMethod = form.watch("payment_method") || "";
+  const isCreditCard = watchedPaymentMethod === "Credit Card";
+  const creditCardFee = isCreditCard ? watchedLaborCost * 0.03 : 0;
+  const invoiceTotal = watchedLaborCost + creditCardFee;
 
   const createMutation = useMutation({
     mutationFn: (data: InsertInvoice) => {
@@ -124,6 +133,7 @@ export default function Invoices() {
         work_performed: data.workPerformed || "Service performed",
         labor_cost: data.labor_cost,
         description: data.description || "",
+        payment_method: data.payment_method || "",
       });
     },
     onSuccess: () => {
@@ -186,13 +196,11 @@ export default function Invoices() {
     },
   });
 
-  // Stripe: create payment link and open it / send to customer
   const handleSendStripeLink = async (invoice: Invoice) => {
     setStripeLoading(invoice.id);
     try {
       const result: any = await apiRequest("POST", `/api/invoices/${invoice.id}/stripe-link`, {});
       if (result.url) {
-        // Copy link to clipboard and show toast with the link
         await navigator.clipboard.writeText(result.url).catch(() => {});
         toast({
           description: (
@@ -312,6 +320,10 @@ export default function Invoices() {
         <div className="mobile-card-list">
           {filteredInvoices.map((invoice) => {
             const color = getAvatarColor(invoice.customerName || "");
+            const hasCCFee = invoice.payment_method === "Credit Card";
+            const baseAmount = invoice.labor_cost;
+            const feeAmount = hasCCFee ? baseAmount * 0.03 : 0;
+            const totalAmount = baseAmount + feeAmount;
             return (
               <div key={invoice.id} className="mobile-card" data-testid={`row-invoice-${invoice.id}`}>
                 <div className="mobile-card-top">
@@ -332,8 +344,13 @@ export default function Invoices() {
                       </div>
                     </div>
                   </div>
-                  <div className="mobile-card-amount" data-testid={`text-amount-${invoice.id}`}>
-                    ${formatCurrency(invoice.labor_cost)}
+                  <div className="text-right">
+                    <div className="mobile-card-amount" data-testid={`text-amount-${invoice.id}`}>
+                      ${formatCurrency(totalAmount)}
+                    </div>
+                    {hasCCFee && (
+                      <div className="text-xs text-orange-500 font-medium">incl. 3% CC fee</div>
+                    )}
                   </div>
                 </div>
 
@@ -346,6 +363,18 @@ export default function Invoices() {
                 {invoice.status === "paid" && invoice.payment_method && (
                   <div className="text-xs text-muted-foreground mt-1">
                     Paid via {invoice.payment_method}
+                    {hasCCFee && (
+                      <span className="ml-1 text-orange-500">
+                        (${formatCurrency(baseAmount)} + ${formatCurrency(feeAmount)} fee)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Show CC fee note even before paid if payment_method set on creation */}
+                {invoice.status !== "paid" && hasCCFee && (
+                  <div className="text-xs text-orange-500 mt-1">
+                    Includes 3% credit card processing fee (${formatCurrency(feeAmount)})
                   </div>
                 )}
 
@@ -494,12 +523,49 @@ export default function Invoices() {
                   <FormLabel>Labor/Materials ($)</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" placeholder="0.00" {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       data-testid="input-invoice-labor-cost" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="payment_method" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Method</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-payment-method-invoice">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {/* Live fee breakdown when Credit Card is selected */}
+              {isCreditCard && watchedLaborCost > 0 && (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800 p-3 text-sm space-y-1">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Labor/Materials</span>
+                    <span>${formatCurrency(watchedLaborCost)}</span>
+                  </div>
+                  <div className="flex justify-between text-orange-600 font-medium">
+                    <span>Credit Card Processing Fee (3%)</span>
+                    <span>+${formatCurrency(creditCardFee)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold border-t border-orange-200 dark:border-orange-800 pt-1 mt-1">
+                    <span>Total Charged</span>
+                    <span>${formatCurrency(invoiceTotal)}</span>
+                  </div>
+                </div>
+              )}
+
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-invoice" className="w-full min-h-11">
                   {createMutation.isPending ? "Creating..." : "Create Invoice"}
@@ -584,7 +650,7 @@ export default function Invoices() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Method Dialog */}
+      {/* Payment Method Dialog (mark paid) */}
       <Dialog open={!!paymentInvoice} onOpenChange={(o) => { if (!o) setPaymentInvoice(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -594,7 +660,7 @@ export default function Invoices() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-2">
-            {["Cash", "Zelle", "Check", "Credit Card", "Cash App", "Other"].map((method) => (
+            {PAYMENT_METHODS.map((method) => (
               <Button
                 key={method}
                 variant="outline"
