@@ -16,6 +16,7 @@ import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
 import BookingPortal from "@/pages/book";
 import LandingPage from "@/pages/landing";
+import SignPage from "@/pages/sign";
 import { isAuthenticated } from "@/lib/auth";
 function AppLayout() {
   const style = {
@@ -85,6 +86,7 @@ function App() {
           <Route path="/" component={LandingPage} />
           <Route path="/admin" component={Login} />
           <Route path="/book" component={BookingPortal} />
+          <Route path="/sign/:token" component={SignPage} />
           <Route path="/:rest*">
             {() => <AppLayout />}
           </Route>

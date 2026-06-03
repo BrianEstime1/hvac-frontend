@@ -28,12 +28,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink, Link2, PenLine } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { generateInvoicePDF, createInvoiceHTML } from "@/lib/invoice-pdf";
+import { generateInvoicePDF, createInvoiceHTML, getOwnerSignature, invalidateOwnerSignatureCache } from "@/lib/invoice-pdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import { PhotoGallery, type InvoicePhoto } from "@/components/PhotoGallery";
 
@@ -80,6 +80,8 @@ export default function Invoices() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [stripeLoading, setStripeLoading] = useState<number | null>(null);
+  const [sigLinkLoading, setSigLinkLoading] = useState<number | null>(null);
+  const [ownerSigDialogOpen, setOwnerSigDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const formatCurrency = (value: number) =>
@@ -166,6 +168,19 @@ export default function Invoices() {
     },
   });
 
+  const ownerSignatureMutation = useMutation({
+    mutationFn: (signature: string) =>
+      apiRequest("POST", "/api/settings/owner-signature", { signature }),
+    onSuccess: () => {
+      invalidateOwnerSignatureCache();
+      setOwnerSigDialogOpen(false);
+      toast({ description: "Your signature has been saved. It will now appear automatically on all invoices." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", description: "Failed to save signature" });
+    },
+  });
+
   const uploadPhotoMutation = useMutation({
     mutationFn: ({ invoiceId, photoData, caption }: { invoiceId: number; photoData: string; caption?: string }) =>
       apiRequest("POST", `/api/invoices/${invoiceId}/photos`, { photo_data: photoData, caption }),
@@ -232,13 +247,16 @@ export default function Invoices() {
 
   const handleDownloadPDF = async (invoice: Invoice) => {
     try {
-      const response = await apiRequest("GET", `/api/invoices/${invoice.id}`);
+      const [response, ownerSig] = await Promise.all([
+        apiRequest("GET", `/api/invoices/${invoice.id}`),
+        getOwnerSignature(),
+      ]);
       const freshInvoice = response as any;
       const invoiceWithSignature = { ...invoice, customer_signature: freshInvoice.customer_signature || invoice.customer_signature };
       const customer = customers?.find((c) => c.id === invoice.customerId);
       const container = document.createElement("div");
       container.id = `invoice-content-${invoice.id}`;
-      container.innerHTML = createInvoiceHTML(invoiceWithSignature, customer);
+      container.innerHTML = createInvoiceHTML(invoiceWithSignature, customer, ownerSig);
       container.style.position = "absolute";
       container.style.left = "-9999px";
       document.body.appendChild(container);
@@ -247,6 +265,26 @@ export default function Invoices() {
       toast({ description: "Invoice downloaded successfully" });
     } catch {
       toast({ description: "Failed to download invoice", variant: "destructive" });
+    }
+  };
+
+  const handleCopySignLink = async (invoice: Invoice) => {
+    setSigLinkLoading(invoice.id);
+    try {
+      const result: any = await apiRequest("POST", `/api/invoices/${invoice.id}/signing-token`, {});
+      await navigator.clipboard.writeText(result.url).catch(() => {});
+      toast({
+        description: (
+          <div className="flex flex-col gap-1">
+            <span className="font-medium">Signing link copied!</span>
+            <span className="text-xs text-muted-foreground">Send this link to {invoice.customerName} so they can sign digitally.</span>
+          </div>
+        ) as any,
+      });
+    } catch {
+      toast({ variant: "destructive", description: "Failed to generate signing link" });
+    } finally {
+      setSigLinkLoading(null);
     }
   };
 
@@ -277,10 +315,16 @@ export default function Invoices() {
           <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
           <p className="text-sm text-muted-foreground">Create and manage customer invoices</p>
         </div>
-        <Button onClick={() => { form.reset(); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
-          <Plus className="w-4 h-4 mr-1.5" />
-          New
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setOwnerSigDialogOpen(true)} title="Set your automatic signature">
+            <PenLine className="w-4 h-4 mr-1.5" />
+            My Signature
+          </Button>
+          <Button onClick={() => { form.reset(); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
+            <Plus className="w-4 h-4 mr-1.5" />
+            New
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -434,6 +478,17 @@ export default function Invoices() {
                     className="text-xs text-muted-foreground"
                   >
                     ✍️ Sign
+                  </Button>
+                  <Button
+                    size="sm" variant="ghost"
+                    onClick={() => handleCopySignLink(invoice)}
+                    disabled={sigLinkLoading === invoice.id}
+                    data-testid={`button-sign-link-${invoice.id}`}
+                    className="text-xs text-muted-foreground"
+                    title="Copy signing link to send to customer"
+                  >
+                    <Link2 className="w-3.5 h-3.5 mr-1" />
+                    {sigLinkLoading === invoice.id ? "..." : "Sign Link"}
                   </Button>
                   <Button
                     size="sm" variant="ghost"
@@ -605,6 +660,22 @@ export default function Invoices() {
           <SignaturePad
             onSave={(sig) => authorizationInvoice && signatureMutation.mutate({ invoiceId: authorizationInvoice.id, signature: sig })}
             isSaving={signatureMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Owner Signature Dialog */}
+      <Dialog open={ownerSigDialogOpen} onOpenChange={setOwnerSigDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Set Your Automatic Signature</DialogTitle>
+            <DialogDescription>
+              Draw your signature once and it will automatically appear on every invoice and quote PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <SignaturePad
+            onSave={(sig) => ownerSignatureMutation.mutate(sig)}
+            isSaving={ownerSignatureMutation.isPending}
           />
         </DialogContent>
       </Dialog>
