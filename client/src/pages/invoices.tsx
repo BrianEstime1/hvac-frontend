@@ -28,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink, Link2, PenLine } from "lucide-react";
+import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink, Link2, PenLine, ClipboardList } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -67,6 +67,26 @@ function StatusPill({ status }: { status?: string }) {
   );
 }
 
+function SignStatusBadge({ status }: { status?: string }) {
+  if (!status || status === "pending") return null;
+  const map: Record<string, { icon: string; color: string; label: string }> = {
+    sent:   { icon: "📤", color: "#6366F1", label: "Link Sent" },
+    viewed: { icon: "👁️", color: "#F59E0B", label: "Viewed" },
+    signed: { icon: "✅", color: "#10B981", label: "Signed" },
+  };
+  const s = map[status];
+  if (!s) return null;
+  return (
+    <span
+      className="text-xs font-medium px-2 py-0.5 rounded-full"
+      style={{ background: `${s.color}18`, color: s.color }}
+      title={`Signature status: ${s.label}`}
+    >
+      {s.icon} {s.label}
+    </span>
+  );
+}
+
 const PAYMENT_METHODS = ["Cash", "Zelle", "Check", "Credit Card", "Cash App", "Other"];
 
 export default function Invoices() {
@@ -82,6 +102,7 @@ export default function Invoices() {
   const [stripeLoading, setStripeLoading] = useState<number | null>(null);
   const [sigLinkLoading, setSigLinkLoading] = useState<number | null>(null);
   const [ownerSigDialogOpen, setOwnerSigDialogOpen] = useState(false);
+  const [auditInvoice, setAuditInvoice] = useState<Invoice | null>(null);
   const { toast } = useToast();
 
   const formatCurrency = (value: number) =>
@@ -102,6 +123,12 @@ export default function Invoices() {
   const { data: invoicePhotos = [], isLoading: photosLoading } = useQuery<InvoicePhoto[]>({
     queryKey: photosQueryKey,
     enabled: !!photoInvoice,
+  });
+
+  const auditQueryKey = auditInvoice ? [`/api/invoices/${auditInvoice.id}/audit-log`] : ["invoice-audit"];
+  const { data: auditLog = [], isLoading: auditLoading } = useQuery<any[]>({
+    queryKey: auditQueryKey,
+    enabled: !!auditInvoice,
   });
 
   const form = useForm<InsertInvoice>({
@@ -385,6 +412,7 @@ export default function Invoices() {
                       <div className="mobile-card-meta">
                         <span className="mobile-card-date" data-testid={`text-date-${invoice.id}`}>{invoice.date}</span>
                         <StatusPill status={invoice.status} />
+                        <SignStatusBadge status={(invoice as any).authorization_status} />
                       </div>
                     </div>
                   </div>
@@ -490,6 +518,17 @@ export default function Invoices() {
                     <Link2 className="w-3.5 h-3.5 mr-1" />
                     {sigLinkLoading === invoice.id ? "..." : "Sign Link"}
                   </Button>
+                  {(invoice as any).authorization_status && (invoice as any).authorization_status !== "pending" && (
+                    <Button
+                      size="sm" variant="ghost"
+                      onClick={() => setAuditInvoice(invoice)}
+                      data-testid={`button-audit-${invoice.id}`}
+                      className="text-xs text-muted-foreground"
+                      title="View signing audit trail"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5 mr-1" /> Audit
+                    </Button>
+                  )}
                   <Button
                     size="sm" variant="ghost"
                     onClick={() => handleDownloadPDF(invoice)}
@@ -722,6 +761,64 @@ export default function Invoices() {
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Audit Trail Dialog */}
+      <Dialog open={!!auditInvoice} onOpenChange={(o) => { if (!o) setAuditInvoice(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Signing Audit Trail</DialogTitle>
+            <DialogDescription>
+              Activity log for Invoice #{auditInvoice?.invoiceNumber || auditInvoice?.id} — {auditInvoice?.customerName}
+            </DialogDescription>
+          </DialogHeader>
+          {auditLoading ? (
+            <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          ) : auditLog.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No activity recorded yet.</p>
+          ) : (
+            <div className="relative pl-5">
+              <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
+              {auditLog.map((event: any, i: number) => {
+                const eventLabels: Record<string, { icon: string; label: string; color: string }> = {
+                  link_generated: { icon: "🔗", label: "Signing link generated", color: "#6366F1" },
+                  viewed:         { icon: "👁️", label: "Invoice viewed by customer", color: "#F59E0B" },
+                  signed:         { icon: "✅", label: "Invoice signed", color: "#10B981" },
+                  reminder_sent:  { icon: "🔔", label: "Reminder sent", color: "#8B5CF6" },
+                };
+                const e = eventLabels[event.event_type] ?? { icon: "•", label: event.event_type, color: "#64748B" };
+                const ts = event.timestamp ? new Date(event.timestamp + (event.timestamp.endsWith('Z') ? '' : 'Z')) : null;
+                const dateStr = ts ? ts.toLocaleString() : event.timestamp;
+                return (
+                  <div key={i} className="relative mb-4 last:mb-0">
+                    <div
+                      className="absolute -left-3.5 top-1 w-3 h-3 rounded-full border-2 border-background"
+                      style={{ background: e.color }}
+                    />
+                    <div className="text-sm font-medium" style={{ color: e.color }}>
+                      {e.icon} {e.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{dateStr}</div>
+                    {event.ip_address && (
+                      <div className="text-xs text-muted-foreground">IP: {event.ip_address}</div>
+                    )}
+                    {event.user_agent && (
+                      <div className="text-xs text-muted-foreground truncate" title={event.user_agent}>
+                        Device: {event.user_agent.split('(')[1]?.split(')')[0] || event.user_agent.slice(0, 40)}
+                      </div>
+                    )}
+                    {event.notes && (
+                      <div className="text-xs text-muted-foreground italic mt-0.5">{event.notes}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAuditInvoice(null)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

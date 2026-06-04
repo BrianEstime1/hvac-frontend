@@ -53,6 +53,8 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     customer_signature: apiInvoice.customer_signature || undefined,
     signature_date: apiInvoice.signature_date || undefined,
     paid_date: apiInvoice.paid_date || undefined,
+    authorization_status: apiInvoice.authorization_status || undefined,
+    signing_token: apiInvoice.signing_token || undefined,
   };
 }
 
