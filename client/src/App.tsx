@@ -83,14 +83,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Switch>
-          {/* Admin login — checked before / so wouter prefix-match never swallows it */}
+          {/* Admin login — must come before / to prevent wouter prefix-match swallowing /admin */}
           <Route path="/admin" component={Login} />
 
           {/* Public customer routes */}
           <Route path="/book" component={BookingPortal} />
           <Route path="/sign/:token" component={SignPage} />
 
-          {/* Customer landing page — root only, after all specific routes */}
+          {/* Customer landing page — root only, placed after specific routes */}
           <Route path="/" component={LandingPage} />
 
           {/* Protected admin app — /dashboard, /invoices, etc. */}
