@@ -83,8 +83,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Switch>
-          <Route path="/" component={LandingPage} />
-          <Route path="/admin" component={Login} />
+          {/* / shows the customer landing page, but skip it if already logged in */}
+          <Route path="/">
+            {() => isAuthenticated() ? <Redirect to="/dashboard" /> : <LandingPage />}
+          </Route>
+          {/* /admin shows login, but skip it if already logged in */}
+          <Route path="/admin">
+            {() => isAuthenticated() ? <Redirect to="/dashboard" /> : <Login />}
+          </Route>
           <Route path="/book" component={BookingPortal} />
           <Route path="/sign/:token" component={SignPage} />
           <Route path="/:rest*">
