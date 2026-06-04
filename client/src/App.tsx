@@ -83,16 +83,17 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Switch>
-          {/* / shows the customer landing page, but skip it if already logged in */}
-          <Route path="/">
-            {() => isAuthenticated() ? <Redirect to="/dashboard" /> : <LandingPage />}
-          </Route>
-          {/* /admin shows login, but skip it if already logged in */}
-          <Route path="/admin">
-            {() => isAuthenticated() ? <Redirect to="/dashboard" /> : <Login />}
-          </Route>
+          {/* Admin login — checked before / so wouter prefix-match never swallows it */}
+          <Route path="/admin" component={Login} />
+
+          {/* Public customer routes */}
           <Route path="/book" component={BookingPortal} />
           <Route path="/sign/:token" component={SignPage} />
+
+          {/* Customer landing page — root only, after all specific routes */}
+          <Route path="/" component={LandingPage} />
+
+          {/* Protected admin app — /dashboard, /invoices, etc. */}
           <Route path="/:rest*">
             {() => <AppLayout />}
           </Route>

@@ -1,5 +1,5 @@
-import { useLocation } from "wouter";
-import { useState, useEffect, FormEvent } from "react";
+import { useLocation, Redirect } from "wouter";
+import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,12 +18,10 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // If already "logged in", skip the login screen
-  useEffect(() => {
-    if (isAuthenticated()) {
-      setLocation("/dashboard");
-    }
-  }, [setLocation]);
+  // Synchronous check — no flash, no useEffect delay
+  if (isAuthenticated()) {
+    return <Redirect to="/dashboard" />;
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
