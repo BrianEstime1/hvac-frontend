@@ -577,9 +577,12 @@ export default function Invoices() {
                 <FormItem>
                   <FormLabel>Labor/Materials ($)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field}
-                      value={field.value === 0 ? "" : field.value}
-                      onChange={(e) => field.onChange(e.target.value === "" ? 0 : parseFloat(e.target.value) || 0)}
+                    <Input type="text" inputMode="decimal" placeholder="Enter amount" {...field}
+                      value={field.value === 0 ? "" : String(field.value)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9.]/g, "");
+                        field.onChange(raw === "" ? 0 : parseFloat(raw) || 0);
+                      }}
                       data-testid="input-invoice-labor-cost" />
                   </FormControl>
                   <FormMessage />
