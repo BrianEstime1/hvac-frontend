@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { Invoice, Customer, Quote } from "@shared/schema";
+import { api } from "@/lib/queryClient";
 
 const BRAND_INFO = {
   name: "FERDAIR LLC",
@@ -13,7 +14,24 @@ const BRAND_INFO = {
 };
 
 
-const OWNER_SIGNATURE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAADICAYAAADGFbfiAAAQAElEQVR4AeydT+i9T1XHrxWlEZTRInCRgtBSWxQtAn8tJDdRkptwoS1aSIEKoe7MVe5UsEW4UCFoo2SbtEVYoBC5sAhC0NA25aIyqEiisHnd3+d8vudzPmeef3fm+XOf95fnfGbmzJkzZ94zc848z3Pv/X7fRf+EgBAQAkJACCxAQAFkAWhqIgSEgBAQApeLAohWgRDYCgH1KwQOjoACyMEnUOYLASEgBLZCQAFkK+TVrxAQAkLg4AgcOIAcHHmZLwSEgBA4OAIKIAefQJkvBISAENgKAQWQrZBXv0LgwAjIdCEAAgogoCASAkJACAgBBZCtkFe/QuAMCGiMd42AAshdT68GJwSEgBDoh4ACSD9spVkICAEhcNcIKIDsenplnBAQAkJgvwgogOx3bmSZEBACQmDXCCiA7Hp6ZJwQEAJbIaB+xxFQABnHSBJCQAgIASGQIKAAkoAilhAQAkJgQwQ+Vfr+i0K7vxRAdj9FBzVQZgsBIbAEgW+WRu8o9KZCXy2060sBZNfTI+OEgBA4EQIvlbG+tpBdbywZeCXZ56UAss95kVVCQAgIgT8AfALAfGqq1TYAAAAASUVORK5CYII=";
+let _ownerSignatureCache: string | null | undefined = undefined;
+
+export async function getOwnerSignature(): Promise<string | null> {
+  if (_ownerSignatureCache !== undefined) return _ownerSignatureCache;
+  try {
+    const res = await api.get("/api/settings/owner-signature");
+    const sig: string | null = res.data?.signature ?? null;
+    _ownerSignatureCache = sig;
+    return sig;
+  } catch {
+    _ownerSignatureCache = null;
+    return null;
+  }
+}
+
+export function invalidateOwnerSignatureCache() {
+  _ownerSignatureCache = undefined;
+}
 
 const formatCurrency = (value: number) =>
   Number(value || 0).toLocaleString(undefined, {
@@ -243,7 +261,8 @@ export async function generateInvoicePDF(
 
 export function createInvoiceHTML(
   invoice: Invoice,
-  customer: Customer | undefined
+  customer: Customer | undefined,
+  ownerSig?: string | null
 ) {
   const laborAmount =
     invoice.labor_cost ?? invoice.subtotal ?? invoice.total ?? 0;
@@ -267,14 +286,14 @@ export function createInvoiceHTML(
     requiredStatement: "",
     paymentTerms: undefined,
     customerSignature: invoice.customer_signature || undefined,
-    ownerSignature: OWNER_SIGNATURE,
+    ownerSignature: ownerSig ?? undefined,
     paymentMethod: invoice.payment_method || undefined,
   };
 
   return buildDocumentHTML("invoice", payload);
 }
 
-export function createQuoteHTML(quote: Quote) {
+export function createQuoteHTML(quote: Quote, ownerSig?: string | null) {
   const payload: DocumentPayload = {
     id: quote.id,
     numberLabel: "Quote #",
@@ -289,7 +308,7 @@ export function createQuoteHTML(quote: Quote) {
     requiredStatement: "Quote includes all the work shown on the attached worksheet.",
     paymentTerms: quote.status ? `Status: ${quote.status}` : undefined,
     customerSignature: undefined,
-    ownerSignature: OWNER_SIGNATURE,
+    ownerSignature: ownerSig ?? undefined,
     extraNote: "Quote includes all the work shown on the attached worksheet.",
   };
 
