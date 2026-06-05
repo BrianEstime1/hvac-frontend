@@ -90,12 +90,11 @@ function App() {
           <Route path="/book" component={BookingPortal} />
           <Route path="/sign/:token" component={SignPage} />
 
-          {/* Customer landing page — root only, placed after specific routes */}
-          <Route path="/" component={LandingPage} />
-
-          {/* Protected admin app — /dashboard, /invoices, etc. */}
+          {/* Root → customer landing; any other path → admin app */}
           <Route path="/:rest*">
-            {() => <AppLayout />}
+            {(params: { rest?: string }) =>
+              params?.rest ? <AppLayout /> : <LandingPage />
+            }
           </Route>
         </Switch>
         <Toaster />
