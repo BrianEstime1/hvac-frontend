@@ -82,6 +82,7 @@ export default function Invoices() {
   const [stripeLoading, setStripeLoading] = useState<number | null>(null);
   const [sigLinkLoading, setSigLinkLoading] = useState<number | null>(null);
   const [ownerSigDialogOpen, setOwnerSigDialogOpen] = useState(false);
+  const [signLinkDialog, setSignLinkDialog] = useState<{ url: string; customerName: string } | null>(null);
   const { toast } = useToast();
 
   const formatCurrency = (value: number) =>
@@ -272,15 +273,18 @@ export default function Invoices() {
     setSigLinkLoading(invoice.id);
     try {
       const result: any = await apiRequest("POST", `/api/invoices/${invoice.id}/signing-token`, {});
-      await navigator.clipboard.writeText(result.url).catch(() => {});
-      toast({
-        description: (
-          <div className="flex flex-col gap-1">
-            <span className="font-medium">Signing link copied!</span>
-            <span className="text-xs text-muted-foreground">Send this link to {invoice.customerName} so they can sign digitally.</span>
-          </div>
-        ) as any,
-      });
+      const url: string = result.url;
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {
+        // clipboard API unavailable (mobile/WebView) — show dialog so user can copy manually
+      }
+      setSignLinkDialog({ url, customerName: invoice.customerName || "customer" });
+      if (copied) {
+        toast({ description: "Link copied to clipboard!" });
+      }
     } catch {
       toast({ variant: "destructive", description: "Failed to generate signing link" });
     } finally {
@@ -749,6 +753,41 @@ export default function Invoices() {
             ))}
           </div>
           <Button variant="ghost" onClick={() => setPaymentInvoice(null)} className="w-full">Cancel</Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sign Link Dialog */}
+      <Dialog open={!!signLinkDialog} onOpenChange={(o) => { if (!o) setSignLinkDialog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Signing Link for {signLinkDialog?.customerName}</DialogTitle>
+            <DialogDescription>
+              Copy this link and send it to your customer so they can sign the invoice from their phone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 mt-2">
+            <Input
+              readOnly
+              value={signLinkDialog?.url || ""}
+              className="text-xs"
+              onFocus={(e) => e.target.select()}
+            />
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                if (!signLinkDialog?.url) return;
+                navigator.clipboard.writeText(signLinkDialog.url).catch(() => {});
+                toast({ description: "Link copied!" });
+              }}
+            >
+              Copy
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Tap the link above to select it, then copy &amp; paste it into a text message.
+          </p>
+          <Button variant="ghost" onClick={() => setSignLinkDialog(null)} className="w-full mt-2">Close</Button>
         </DialogContent>
       </Dialog>
     </div>
