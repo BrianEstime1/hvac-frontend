@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Snowflake, Wrench, ClipboardList, Thermometer, Wind, Zap, Tag, Clock, Shield, Users, Phone } from "lucide-react";
 
 function useReveal(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
@@ -17,26 +18,26 @@ function useReveal(threshold = 0.12) {
 }
 
 const SERVICES = [
-  { icon: "❄️", title: "AC Installation & Replacement", desc: "New system installs, split systems, central air — sized right for your space and budget.", badge: "Most Popular" },
-  { icon: "🔧", title: "AC & Heating Repair", desc: "Fast diagnostics, honest pricing. We fix it right the first time — no upselling, no runaround." },
-  { icon: "📋", title: "Preventive Maintenance", desc: "Seasonal tune-ups that extend system life, improve efficiency, and prevent costly breakdowns." },
-  { icon: "🌡️", title: "Heat Pump Services", desc: "Installation, repair, and optimization of heat pump systems for year-round comfort." },
-  { icon: "💨", title: "Air Quality & Duct Work", desc: "Duct cleaning, sealing, and air quality solutions — breathe cleaner, live healthier." },
-  { icon: "⚡", title: "Emergency Service", desc: "System down on the hottest day of the year? We respond fast when you need it most.", badge: "24/7" },
+  { Icon: Snowflake, title: "AC Installation & Replacement", desc: "New system installs, split systems, central air — sized right for your space and budget.", badge: "Most Popular" },
+  { Icon: Wrench, title: "AC & Heating Repair", desc: "Fast diagnostics, honest pricing. We fix it right the first time — no upselling, no runaround." },
+  { Icon: ClipboardList, title: "Preventive Maintenance", desc: "Seasonal tune-ups that extend system life, improve efficiency, and prevent costly breakdowns." },
+  { Icon: Thermometer, title: "Heat Pump Services", desc: "Installation, repair, and optimization of heat pump systems for year-round comfort." },
+  { Icon: Wind, title: "Air Quality & Duct Work", desc: "Duct cleaning, sealing, and air quality improvements for a cleaner, healthier home." },
+  { Icon: Zap, title: "Emergency Service", desc: "System down on the hottest day of the year? We respond fast when you need it most.", badge: "24/7" },
 ];
 
 const STATS = [
   { value: "10+", label: "Years Experience" },
-  { value: "500+", label: "Happy Customers" },
+  { value: "500+", label: "Jobs Completed" },
   { value: "24/7", label: "Emergency Service" },
   { value: "100%", label: "Licensed & Insured" },
 ];
 
 const WHY = [
-  { icon: "🎯", title: "Upfront Pricing", desc: "No hidden fees. We quote before we start." },
-  { icon: "⚡", title: "Same-Day Service", desc: "For most repairs, we're there today." },
-  { icon: "🛡️", title: "Licensed & Insured", desc: "Fully licensed Florida HVAC contractors." },
-  { icon: "🤝", title: "Family Owned", desc: "Local roots, personal accountability." },
+  { Icon: Tag, title: "Upfront Pricing", desc: "No hidden fees. We quote before we start." },
+  { Icon: Clock, title: "Same-Day Service", desc: "For most repairs, we're there today." },
+  { Icon: Shield, title: "Licensed & Insured", desc: "Fully licensed Florida HVAC contractors." },
+  { Icon: Users, title: "Family Owned", desc: "Local roots, personal accountability." },
 ];
 
 export default function LandingPage() {
@@ -61,7 +62,8 @@ export default function LandingPage() {
         html { scroll-behavior: smooth; }
         body { background: #0a0f1c; }
         .fa-btn-primary {
-          display: inline-block; background: #2563eb; color: #fff;
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          background: #2563eb; color: #fff;
           padding: 1rem 2.4rem; border-radius: 6px; text-decoration: none;
           font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 1.05rem;
           letter-spacing: 0.08em; transition: all 0.2s;
@@ -69,7 +71,8 @@ export default function LandingPage() {
         }
         .fa-btn-primary:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 8px 40px rgba(37,99,235,0.45); }
         .fa-btn-outline {
-          display: inline-block; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8);
+          display: inline-flex; align-items: center; gap: 0.5rem;
+          border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8);
           padding: 1rem 2rem; border-radius: 6px; text-decoration: none;
           font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 1rem; transition: all 0.2s;
         }
@@ -81,16 +84,18 @@ export default function LandingPage() {
           gap: 1.5px; background: rgba(255,255,255,0.06); }
         .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.06); }
         .why-card { background: #0a0f1c; padding: 2rem; }
+        .nav-mobile-btn { display: none; }
         @media (max-width: 768px) {
           .why-split { flex-direction: column !important; }
           .why-grid { grid-template-columns: 1fr; }
           .hero-btns { flex-direction: column; align-items: flex-start; }
           .stats-row { gap: 1.5rem !important; flex-wrap: wrap; }
-          .nav-links { display: none; }
+          .nav-links { display: none !important; }
+          .nav-mobile-btn { display: inline-flex !important; }
         }
       `}</style>
 
-      {/* ── NAV ── */}
+      {/* NAV */}
       <nav style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
         transition: "all 0.3s ease",
@@ -116,25 +121,21 @@ export default function LandingPage() {
             Book Now
           </a>
         </div>
-        {/* Mobile Book Now */}
-        <a href="/book" className="fa-btn-primary nav-mobile-btn" style={{ padding: "0.55rem 1.2rem", fontSize: "0.85rem", display: "none" }}>
+        <a href="/book" className="fa-btn-primary nav-mobile-btn" style={{ padding: "0.55rem 1.2rem", fontSize: "0.85rem" }}>
           Book Now
         </a>
       </nav>
 
-      {/* ── HERO ── */}
+      {/* HERO */}
       <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative",
         overflow: "hidden", background: "#0a0f1c" }}>
-        {/* grid bg */}
         <div style={{ position: "absolute", inset: 0,
           backgroundImage: "linear-gradient(rgba(37,99,235,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.04) 1px, transparent 1px)",
           backgroundSize: "60px 60px" }} />
-        {/* glow */}
         <div style={{ position: "absolute", top: "15%", right: "-5%", width: "600px", height: "600px",
           borderRadius: "50%", background: "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: "-10%", left: "-5%", width: "500px", height: "500px",
           borderRadius: "50%", background: "radial-gradient(circle, rgba(0,200,255,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-        {/* big bg letters */}
         <div style={{ position: "absolute", right: "3%", top: "50%", transform: "translateY(-50%)",
           fontFamily: "'Oswald', sans-serif", fontSize: "clamp(180px, 26vw, 360px)", fontWeight: 900,
           color: "rgba(37,99,235,0.04)", userSelect: "none", letterSpacing: "-0.05em", lineHeight: 1 }}>
@@ -142,7 +143,6 @@ export default function LandingPage() {
         </div>
 
         <div style={{ position: "relative", maxWidth: "1200px", margin: "0 auto", padding: "8rem 2rem 4rem", width: "100%" }}>
-          {/* pill */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem",
             background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.3)",
             borderRadius: "100px", padding: "0.35rem 1rem", marginBottom: "2rem",
@@ -150,7 +150,7 @@ export default function LandingPage() {
             transition: "all 0.6s ease" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563eb", display: "inline-block" }} />
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "#60a5fa",
-              letterSpacing: "0.08em", fontWeight: 600 }}>SERVING FLORIDA</span>
+              letterSpacing: "0.08em", fontWeight: 600 }}>PALM BEACH COUNTY, FL</span>
           </div>
 
           <h1 style={{ fontFamily: "'Oswald', sans-serif", fontSize: "clamp(3rem, 7vw, 6.5rem)",
@@ -166,23 +166,25 @@ export default function LandingPage() {
             color: "rgba(255,255,255,0.6)", maxWidth: "480px", lineHeight: 1.7, marginBottom: "2.5rem",
             opacity: heroLoaded ? 1 : 0, transform: heroLoaded ? "translateY(0)" : "translateY(24px)",
             transition: "all 0.7s ease 0.2s" }}>
-            Licensed HVAC experts delivering fast, honest service across Florida.
-            AC installation, repair, maintenance — done right the first time.
+            Licensed HVAC experts serving Palm Beach County.
+            AC installation, repair, and maintenance — done right the first time.
           </p>
 
           <div className="hero-btns" style={{ display: "flex", gap: "1rem", flexWrap: "wrap",
             opacity: heroLoaded ? 1 : 0, transform: heroLoaded ? "translateY(0)" : "translateY(24px)",
             transition: "all 0.7s ease 0.3s" }}>
-            <a href="/book" className="fa-btn-primary">BOOK A SERVICE →</a>
+            <a href="/book" className="fa-btn-primary">BOOK A SERVICE &rarr;</a>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <a href="tel:+5615775327" className="fa-btn-outline" style={{ textAlign: "center" }}>📞 (561) 577-5327</a>
+              <a href="tel:+5615775327" className="fa-btn-outline" style={{ justifyContent: "center" }}>
+                <Phone size={15} />
+                (561) 577-5327
+              </a>
               <a href="tel:+15614034166" style={{ textAlign: "center", color: "rgba(255,255,255,0.45)", fontSize: "0.8rem", textDecoration: "none", letterSpacing: "0.04em" }}>
                 or (561) 403-4166
               </a>
             </div>
           </div>
 
-          {/* stats */}
           <div className="stats-row" style={{ display: "flex", gap: "3rem", marginTop: "5rem",
             opacity: heroLoaded ? 1 : 0, transition: "all 0.8s ease 0.5s" }}>
             {STATS.map(s => (
@@ -197,7 +199,7 @@ export default function LandingPage() {
           background: "linear-gradient(transparent, #0d1117)", pointerEvents: "none" }} />
       </section>
 
-      {/* ── SERVICES ── */}
+      {/* SERVICES */}
       <section id="services" style={{ background: "#0d1117", padding: "6rem 2rem" }}>
         <div ref={servicesReveal.ref} style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ marginBottom: "4rem", opacity: servicesReveal.visible ? 1 : 0,
@@ -228,7 +230,9 @@ export default function LandingPage() {
                     {s.badge}
                   </span>
                 )}
-                <div style={{ fontSize: "2rem", marginBottom: "1.25rem" }}>{s.icon}</div>
+                <div style={{ marginBottom: "1.25rem", color: "#2563eb" }}>
+                  <s.Icon size={28} strokeWidth={1.5} />
+                </div>
                 <h3 style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.1rem", fontWeight: 600,
                   color: "#fff", margin: "0 0 0.75rem", letterSpacing: "0.02em" }}>{s.title}</h3>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.9rem",
@@ -245,20 +249,19 @@ export default function LandingPage() {
               letterSpacing: "0.08em", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "#2563eb"; e.currentTarget.style.color = "#fff"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#60a5fa"; }}>
-              SCHEDULE YOUR SERVICE →
+              SCHEDULE YOUR SERVICE &rarr;
             </a>
           </div>
         </div>
       </section>
 
-      {/* ── WHY US ── */}
+      {/* WHY US */}
       <section id="about" style={{ background: "#0a0f1c", padding: "6rem 2rem", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
           width: "700px", height: "700px", borderRadius: "50%",
           background: "radial-gradient(circle, rgba(37,99,235,0.05) 0%, transparent 65%)", pointerEvents: "none" }} />
         <div ref={whyReveal.ref} style={{ maxWidth: "1200px", margin: "0 auto", position: "relative" }}>
           <div className="why-split" style={{ display: "flex", gap: "5rem", alignItems: "center" }}>
-            {/* left */}
             <div style={{ flex: 1, opacity: whyReveal.visible ? 1 : 0,
               transform: whyReveal.visible ? "translateX(0)" : "translateX(-30px)", transition: "all 0.7s ease" }}>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "#60a5fa",
@@ -270,12 +273,11 @@ export default function LandingPage() {
               </h2>
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", color: "rgba(255,255,255,0.55)",
                 lineHeight: 1.8, marginBottom: "2rem" }}>
-                We're a family-owned HVAC company based in Tampa Bay. Every job gets a licensed
+                We're a family-owned HVAC company based in Palm Beach County. Every job gets a licensed
                 technician, honest diagnostics, and a straightforward price — no commission-driven upselling.
               </p>
-              <a href="/book" className="fa-btn-primary">GET A FREE QUOTE →</a>
+              <a href="/book" className="fa-btn-primary">GET A FREE QUOTE &rarr;</a>
             </div>
-            {/* right */}
             <div style={{ flex: 1 }}>
               <div className="why-grid">
                 {WHY.map((p, i) => (
@@ -283,7 +285,9 @@ export default function LandingPage() {
                     opacity: whyReveal.visible ? 1 : 0,
                     transform: whyReveal.visible ? "translateY(0)" : "translateY(20px)",
                     transition: `all 0.6s ease ${0.15 + i * 0.1}s` }}>
-                    <div style={{ fontSize: "1.6rem", marginBottom: "0.75rem" }}>{p.icon}</div>
+                    <div style={{ marginBottom: "0.75rem", color: "#2563eb" }}>
+                      <p.Icon size={24} strokeWidth={1.5} />
+                    </div>
                     <h4 style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1rem", fontWeight: 600,
                       color: "#fff", margin: "0 0 0.5rem" }}>{p.title}</h4>
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem",
@@ -296,7 +300,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* CTA */}
       <section id="contact" style={{ background: "#0d1117", padding: "6rem 2rem" }}>
         <div ref={ctaReveal.ref} style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center",
           opacity: ctaReveal.visible ? 1 : 0, transform: ctaReveal.visible ? "translateY(0)" : "translateY(30px)",
@@ -307,7 +311,7 @@ export default function LandingPage() {
               letterSpacing: "0.15em", fontWeight: 600, marginBottom: "1rem" }}>READY TO GET STARTED?</p>
             <h2 style={{ fontFamily: "'Oswald', sans-serif", fontSize: "clamp(2.2rem, 5vw, 4rem)",
               fontWeight: 700, color: "#fff", margin: "0 0 1rem", lineHeight: 1.05 }}>
-              YOUR COMFORT<br />IS ONE CLICK AWAY.
+              YOUR COMFORT<br />IS ONE CALL AWAY.
             </h2>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "1rem", color: "rgba(255,255,255,0.5)",
               lineHeight: 1.7, marginBottom: "2.5rem" }}>
@@ -316,10 +320,11 @@ export default function LandingPage() {
             </p>
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <a href="/book" className="fa-btn-primary" style={{ fontSize: "1.1rem", padding: "1.1rem 3rem",
-                boxShadow: "0 0 50px rgba(37,99,235,0.35)" }}>BOOK NOW →</a>
+                boxShadow: "0 0 50px rgba(37,99,235,0.35)" }}>BOOK NOW &rarr;</a>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "center" }}>
                 <a href="tel:+5615775327" className="fa-btn-outline" style={{ padding: "1.1rem 2.5rem" }}>
-                  📞 (561) 577-5327
+                  <Phone size={16} />
+                  (561) 577-5327
                 </a>
                 <a href="tel:+15614034166" style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.8rem", textDecoration: "none", letterSpacing: "0.04em" }}>
                   or (561) 403-4166
@@ -330,18 +335,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
+      {/* FOOTER */}
       <footer style={{ background: "#0a0f1c", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "2rem 2rem" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex",
           alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
           <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: "1.2rem", fontWeight: 700, letterSpacing: "0.06em", color: "#fff" }}>
-          FERD<span style={{ color: "#2563eb" }}>AIR</span>
-        </span>
+            FERD<span style={{ color: "#2563eb" }}>AIR</span>
+          </span>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "rgba(255,255,255,0.3)" }}>
-            © {new Date().getFullYear()} FerdAir HVAC LLC · Palm Beach, FL · Licensed & Insured
+            &copy; {new Date().getFullYear()} FerdAir HVAC LLC &middot; Palm Beach County, FL &middot; Licensed & Insured
           </p>
           <a href="/book" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem",
-            color: "#60a5fa", textDecoration: "none", fontWeight: 600 }}>Book Service →</a>
+            color: "#60a5fa", textDecoration: "none", fontWeight: 600 }}>Book Service &rarr;</a>
         </div>
       </footer>
     </>
