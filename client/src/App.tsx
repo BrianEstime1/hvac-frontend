@@ -17,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import BookingPortal from "@/pages/book";
 import LandingPage from "@/pages/landing";
 import SignPage from "@/pages/sign";
+import SignQuotePage from "@/pages/sign-quote";
 import { isAuthenticated } from "@/lib/auth";
 function AppLayout() {
   const style = {
@@ -30,18 +31,14 @@ function AppLayout() {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        {/* Sidebar — hidden on mobile, visible on desktop */}
         <div className="hidden md:block">
           <AppSidebar />
         </div>
         <div className="flex flex-col flex-1 min-w-0">
-          {/* Header */}
           <header className="flex items-center justify-between p-4 border-b bg-background">
-            {/* Desktop: sidebar toggle */}
             <div className="hidden md:block">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
             </div>
-            {/* Mobile: logo */}
             <div className="md:hidden flex items-center gap-2">
               <img
                 src="/ferdair_professional_logo.png"
@@ -53,7 +50,6 @@ function AppLayout() {
               FerdAir Manager
             </h2>
           </header>
-          {/* Page content — extra bottom padding on mobile for nav bar */}
           <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6">
             <div className="max-w-7xl mx-auto">
               <Switch>
@@ -71,7 +67,6 @@ function AppLayout() {
           </main>
         </div>
       </div>
-      {/* Mobile bottom nav — only on mobile */}
       <div className="md:hidden">
         <MobileNav />
       </div>
@@ -83,17 +78,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Switch>
-          {/* Admin login — must come before / to prevent wouter prefix-match swallowing /admin */}
           <Route path="/admin" component={Login} />
-
-          {/* Public customer routes */}
           <Route path="/book" component={BookingPortal} />
           <Route path="/sign/:token" component={SignPage} />
-
-          {/* Customer landing page — root only, placed after specific routes */}
+          <Route path="/sign-quote/:token" component={SignQuotePage} />
           <Route path="/" component={LandingPage} />
-
-          {/* Protected admin app — /dashboard, /invoices, etc. */}
           <Route path="/:rest*">
             {() => <AppLayout />}
           </Route>
