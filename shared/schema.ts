@@ -87,6 +87,8 @@ export const quoteSchema = z.object({
   status: z.string().optional(),
   createdAt: z.string(),
   quoteNumber: z.string().optional(),
+  customer_signature: z.string().optional(),
+  signature_date: z.string().optional(),
 });
 
 export const insertQuoteSchema = z.object({

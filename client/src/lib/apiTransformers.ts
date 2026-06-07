@@ -35,7 +35,6 @@ export function transformInvoiceFromAPI(apiInvoice: any): any {
     invoiceNumber: apiInvoice.invoice_number,
     date: apiInvoice.date,
     technician: apiInvoice.technician,
-    // Support both snake_case and camelCase fields from different backends
     workPerformed:
       apiInvoice.work_performed ||
       apiInvoice.workPerformed ||
@@ -91,5 +90,7 @@ export function transformQuoteFromAPI(apiQuote: any): any {
     status: apiQuote.status || "",
     createdAt: apiQuote.created_at || apiQuote.createdAt || "",
     quoteNumber: apiQuote.quote_number || apiQuote.quoteNumber || undefined,
+    customer_signature: apiQuote.customer_signature || undefined,
+    signature_date: apiQuote.signature_date || undefined,
   };
 }
