@@ -1,14 +1,9 @@
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,

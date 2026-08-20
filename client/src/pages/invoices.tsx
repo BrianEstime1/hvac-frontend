@@ -83,7 +83,20 @@ export default function Invoices() {
   const [sigLinkLoading, setSigLinkLoading] = useState<number | null>(null);
   const [ownerSigDialogOpen, setOwnerSigDialogOpen] = useState(false);
   const [signLinkDialog, setSignLinkDialog] = useState<{ url: string; customerName: string } | null>(null);
+  // Keep the labor cost as typed text so decimals like "35.45" can be entered
+  // (parsing to a number on every keystroke would drop a trailing ".")
+  const [laborCostText, setLaborCostText] = useState("");
   const { toast } = useToast();
+
+  const sanitizeMoneyInput = (raw: string) => {
+    let value = raw.replace(/[^0-9.]/g, "");
+    const dot = value.indexOf(".");
+    if (dot !== -1) {
+      value = value.slice(0, dot + 1) + value.slice(dot + 1).replace(/\./g, "");
+      value = value.slice(0, dot + 3); // max 2 decimal places
+    }
+    return value;
+  };
 
   const formatCurrency = (value: number) =>
     Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
@@ -324,7 +337,7 @@ export default function Invoices() {
             <PenLine className="w-4 h-4 mr-1.5" />
             My Signature
           </Button>
-          <Button onClick={() => { form.reset(); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
+          <Button onClick={() => { form.reset(); setLaborCostText(""); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
             <Plus className="w-4 h-4 mr-1.5" />
             New
           </Button>
@@ -518,7 +531,7 @@ export default function Invoices() {
       )}
 
       {/* Add Invoice Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={(o) => { if (!o) { setIsAddDialogOpen(false); form.reset(); } }}>
+      <Dialog open={isAddDialogOpen} onOpenChange={(o) => { if (!o) { setIsAddDialogOpen(false); form.reset(); setLaborCostText(""); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto" data-testid="dialog-invoice-form">
           <DialogHeader>
             <DialogTitle>Create New Invoice</DialogTitle>
@@ -581,11 +594,12 @@ export default function Invoices() {
                 <FormItem>
                   <FormLabel>Labor/Materials ($)</FormLabel>
                   <FormControl>
-                    <Input type="text" inputMode="decimal" placeholder="Enter amount" {...field}
-                      value={field.value === 0 ? "" : String(field.value)}
+                    <Input type="text" inputMode="decimal" placeholder="0.00" {...field}
+                      value={laborCostText}
                       onChange={(e) => {
-                        const raw = e.target.value.replace(/[^0-9.]/g, "");
-                        field.onChange(raw === "" ? 0 : parseFloat(raw) || 0);
+                        const text = sanitizeMoneyInput(e.target.value);
+                        setLaborCostText(text);
+                        field.onChange(text === "" ? 0 : parseFloat(text) || 0);
                       }}
                       data-testid="input-invoice-labor-cost" />
                   </FormControl>

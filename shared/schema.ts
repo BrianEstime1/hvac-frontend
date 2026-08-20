@@ -19,14 +19,22 @@ export const appointmentSchema = z.object({
   id: z.number(),
   customerId: z.number(),
   customerName: z.string().optional(),
+  customerPhone: z.string().optional(),
+  customerAddress: z.string().optional(),
   date: z.string(),
   time: z.string(),
   serviceType: z.string().optional(),
+  technician: z.string().optional(),
   description: z.string().optional(),
-  status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
+  status: z.enum(["pending", "scheduled", "in-progress", "completed", "cancelled"]).optional(),
 });
 
-export const insertAppointmentSchema = appointmentSchema.omit({ id: true, customerName: true });
+export const insertAppointmentSchema = appointmentSchema.omit({
+  id: true,
+  customerName: true,
+  customerPhone: true,
+  customerAddress: true,
+});
 
 export type Appointment = z.infer<typeof appointmentSchema>;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
