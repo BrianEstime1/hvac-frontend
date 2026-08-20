@@ -10,6 +10,7 @@ export function transformAppointmentFromAPI(apiAppointment: any): any {
     date: apiAppointment.appointment_date,
     time: apiAppointment.appointment_time,
     serviceType: apiAppointment.service_type,
+    technician: apiAppointment.technician,
     description: apiAppointment.notes,
     status: apiAppointment.status,
   };
