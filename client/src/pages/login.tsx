@@ -28,16 +28,17 @@ export default function Login() {
 
     try {
       const response = await api.post("/api/auth/login", { password });
-      const { token, expiresIn } = response.data as {
+      const { token, expiresIn, expires_in } = response.data as {
         token?: string;
         expiresIn?: number;
+        expires_in?: number;
       };
 
       if (!token) {
         throw new Error("No token received from server");
       }
 
-      setToken(token, expiresIn);
+      setToken(token, expires_in ?? expiresIn);
       setError("");
       setLocation("/dashboard");
     } catch (err) {

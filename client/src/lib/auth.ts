@@ -1,6 +1,9 @@
 const TOKEN_KEY = "ferdair_token";
 const EXPIRY_KEY = "ferdair_token_expiry";
-const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
+// Fallback only — the backend reports the real expiry via expires_in on
+// login. Keep this at the shortest token lifetime the backend has ever
+// issued so we never believe a token outlives its server-side expiry.
+const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
 
 function isBrowser() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
