@@ -28,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink, Link2, PenLine } from "lucide-react";
+import { Plus, Trash2, Download, Image as ImageIcon, Upload, Send, CreditCard, ExternalLink, Link2, PenLine, Pencil } from "lucide-react";
 import { insertInvoiceSchema, type Invoice, type InsertInvoice, type Customer } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -69,8 +69,20 @@ function StatusPill({ status }: { status?: string }) {
 
 const PAYMENT_METHODS = ["Cash", "Zelle", "Check", "Credit Card", "Cash App", "Other"];
 
+// Fields the edit form doesn't show but the PUT endpoint would otherwise
+// blank out — fetched fresh on edit and sent back unchanged.
+interface EditPassthrough {
+  scheduled_time: string;
+  recommendations: string;
+  tax_rate: number;
+  materials_cost: number;
+}
+
 export default function Invoices() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [editExtras, setEditExtras] = useState<EditPassthrough | null>(null);
+  const [editLoading, setEditLoading] = useState<number | null>(null);
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
   const [authorizationInvoice, setAuthorizationInvoice] = useState<Invoice | null>(null);
   const [photoInvoice, setPhotoInvoice] = useState<Invoice | null>(null);
@@ -162,6 +174,73 @@ export default function Invoices() {
       toast({ variant: "destructive", description: error.message || "Failed to create invoice" });
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data, extras }: { id: number; data: InsertInvoice; extras: EditPassthrough }) =>
+      apiRequest("PUT", `/api/invoices/${id}`, {
+        invoice_number: data.invoiceNumber || `INV-${id}`,
+        date: data.date,
+        technician: data.technician || "Admin",
+        work_performed: data.workPerformed || "Service performed",
+        labor_cost: data.labor_cost,
+        description: data.description || "",
+        payment_method: data.payment_method || "",
+        scheduled_time: extras.scheduled_time,
+        recommendations: extras.recommendations,
+        tax_rate: extras.tax_rate,
+        materials_cost: extras.materials_cost,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setIsAddDialogOpen(false);
+      setEditingInvoice(null);
+      setEditExtras(null);
+      form.reset();
+      toast({ description: "Invoice updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", description: error.message || "Failed to update invoice" });
+    },
+  });
+
+  const handleOpenEdit = async (invoice: Invoice) => {
+    setEditLoading(invoice.id);
+    try {
+      const fresh: any = await apiRequest("GET", `/api/invoices/${invoice.id}`);
+      const labor = Number(fresh.costs?.labor ?? invoice.labor_cost ?? 0);
+      setEditExtras({
+        scheduled_time: fresh.scheduled_time || "",
+        recommendations: fresh.recommendations || "",
+        tax_rate: Number(fresh.costs?.tax_rate ?? 0),
+        materials_cost: Number(fresh.costs?.materials ?? 0),
+      });
+      form.reset({
+        customerId: invoice.customerId,
+        invoiceNumber: fresh.invoice_number || "",
+        date: fresh.date || invoice.date,
+        technician: fresh.technician || "",
+        workPerformed: fresh.work_performed || "",
+        labor_cost: labor,
+        description: fresh.description || "",
+        payment_method: fresh.payment_method || "",
+      });
+      setLaborCostText(labor ? String(labor) : "");
+      setEditingInvoice(invoice);
+      setIsAddDialogOpen(true);
+    } catch {
+      toast({ variant: "destructive", description: "Failed to load invoice for editing" });
+    } finally {
+      setEditLoading(null);
+    }
+  };
+
+  const handleFormSubmit = (data: InsertInvoice) => {
+    if (editingInvoice && editExtras) {
+      updateMutation.mutate({ id: editingInvoice.id, data, extras: editExtras });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/invoices/${id}`),
@@ -337,7 +416,7 @@ export default function Invoices() {
             <PenLine className="w-4 h-4 mr-1.5" />
             My Signature
           </Button>
-          <Button onClick={() => { form.reset(); setLaborCostText(""); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
+          <Button onClick={() => { setEditingInvoice(null); setEditExtras(null); form.reset(); setLaborCostText(""); setIsAddDialogOpen(true); }} data-testid="button-add-invoice" size="sm">
             <Plus className="w-4 h-4 mr-1.5" />
             New
           </Button>
@@ -482,6 +561,15 @@ export default function Invoices() {
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
                   <Button
                     size="sm" variant="ghost"
+                    onClick={() => handleOpenEdit(invoice)}
+                    disabled={editLoading === invoice.id}
+                    data-testid={`button-edit-${invoice.id}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-1" /> {editLoading === invoice.id ? "..." : "Edit"}
+                  </Button>
+                  <Button
+                    size="sm" variant="ghost"
                     onClick={() => { setPhotoInvoice(invoice); setSelectedPhotoFile(null); setPhotoCaption(""); }}
                     data-testid={`button-photos-${invoice.id}`}
                     className="text-xs text-muted-foreground"
@@ -531,18 +619,18 @@ export default function Invoices() {
       )}
 
       {/* Add Invoice Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={(o) => { if (!o) { setIsAddDialogOpen(false); form.reset(); setLaborCostText(""); } }}>
+      <Dialog open={isAddDialogOpen} onOpenChange={(o) => { if (!o) { setIsAddDialogOpen(false); setEditingInvoice(null); setEditExtras(null); form.reset(); setLaborCostText(""); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto" data-testid="dialog-invoice-form">
           <DialogHeader>
-            <DialogTitle>Create New Invoice</DialogTitle>
-            <DialogDescription>Create an invoice for a customer</DialogDescription>
+            <DialogTitle>{editingInvoice ? `Edit Invoice #${editingInvoice.invoiceNumber || editingInvoice.id}` : "Create New Invoice"}</DialogTitle>
+            <DialogDescription>{editingInvoice ? "Fix a mistake — changes replace the old values" : "Create an invoice for a customer"}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
               <FormField control={form.control} name="customerId" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Customer</FormLabel>
-                  <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString()}>
+                  <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value?.toString()} disabled={!!editingInvoice}>
                     <FormControl>
                       <SelectTrigger data-testid="select-customer-invoice"><SelectValue placeholder="Select a customer" /></SelectTrigger>
                     </FormControl>
@@ -644,8 +732,10 @@ export default function Invoices() {
               )}
 
               <DialogFooter>
-                <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit-invoice" className="w-full min-h-11">
-                  {createMutation.isPending ? "Creating..." : "Create Invoice"}
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-submit-invoice" className="w-full min-h-11">
+                  {editingInvoice
+                    ? updateMutation.isPending ? "Saving..." : "Save Changes"
+                    : createMutation.isPending ? "Creating..." : "Create Invoice"}
                 </Button>
               </DialogFooter>
             </form>
