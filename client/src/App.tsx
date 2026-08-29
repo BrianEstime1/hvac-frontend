@@ -19,6 +19,23 @@ import LandingPage from "@/pages/landing";
 import SignPage from "@/pages/sign";
 import SignQuotePage from "@/pages/sign-quote";
 import { isAuthenticated } from "@/lib/auth";
+
+// The installed PWA is the manager app — it should never land on the
+// marketing website, even if something navigates it to "/".
+function isStandalonePWA() {
+  return (
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true)
+  );
+}
+
+function HomeRoute() {
+  if (isStandalonePWA()) {
+    return <Redirect to={isAuthenticated() ? "/dashboard" : "/admin"} />;
+  }
+  return <LandingPage />;
+}
 function AppLayout() {
   const style = {
     "--sidebar-width": "16rem",
@@ -82,7 +99,7 @@ function App() {
           <Route path="/book" component={BookingPortal} />
           <Route path="/sign/:token" component={SignPage} />
           <Route path="/sign-quote/:token" component={SignQuotePage} />
-          <Route path="/" component={LandingPage} />
+          <Route path="/" component={HomeRoute} />
           <Route path="/:rest*">
             {() => <AppLayout />}
           </Route>

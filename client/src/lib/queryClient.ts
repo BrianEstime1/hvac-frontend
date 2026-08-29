@@ -33,13 +33,26 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Pages that don't belong to the admin dashboard: the marketing site,
+// customer booking, and customer signing links. An expired admin token
+// must never yank these visitors (or the PWA) to the wrong place.
+function isPublicPage(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/admin" ||
+    pathname.startsWith("/book") ||
+    pathname.startsWith("/sign")
+  );
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       clearToken();
-      if (typeof window !== "undefined") {
-        window.location.href = "/";
+      // Send expired sessions back to the login screen, not the website home
+      if (typeof window !== "undefined" && !isPublicPage(window.location.pathname)) {
+        window.location.href = "/admin";
       }
     }
 
